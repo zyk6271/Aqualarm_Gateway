@@ -67,29 +67,14 @@ void NormalSolve(int rssi,uint8_t *rx_buffer,uint8_t rx_len)
          sscanf((const char *)&rx_buffer[1],"{%ld,%ld,%d,%d,%d}",&Rx_message.Target_ID,&Rx_message.From_ID,&Rx_message.Counter,&Rx_message.Command,&Rx_message.Data);
          if(Rx_message.Target_ID==Self_Id)
          {
-             if(Rx_message.From_ID == 98989898)
-             {
-                 LOG_I("Factory Test verify ok,RSSI is %d\r\n",rssi);
-                 rf_refresh();
-                 if(rssi>-70)
-                 {
-                     rf_led_factory(2);
-                 }
-                 else
-                 {
-                     rf_led_factory(1);
-                }
-                return;
-             }
              rf_led(3);
-             LOG_D("NormalSolve verify ok\r\n");
+             LOG_D("Factory Get %ld ok,Rssi is %d\r\n",Rx_message.From_ID,rssi);
              switch(Rx_message.Command)
              {
-             case 3://学习
-                 Device_Learn(Rx_message);
+             case 9://Factory
+                 RadioEnqueue(Rx_message.From_ID,1,9,0);
                  break;
              }
-             Heart_Upload(Rx_message.From_ID,1);
          }
      }
 }

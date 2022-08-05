@@ -26,17 +26,17 @@
 int main(void)
 {
     LOG_I("System Version is %s\r\n",MCU_VER);
-    flash_Init();
+//    flash_Init();
     led_Init();
-    LoadDevice2Memory();
-    factory_detect();
-    Key_Reponse_Init();
-    button_Init();
-    Sync_Init();
+//    LoadDevice2Memory();
+//    factory_detect();
+//    Key_Reponse_Init();
+//    button_Init();
+//    Sync_Init();
     rf_433_start();
     RadioDequeueTaskInit();
-    Heart_Init();
-    WiFi_Init();
+//    Heart_Init();
+//    WiFi_Init();
     while (1)
     {
         rt_thread_mdelay(1000);
