@@ -1071,6 +1071,12 @@
   <group>
     <name>Drivers</name>
     <group>
+      <name>CMSIS</name>
+      <file>
+        <name>$PROJ_DIR$/../Src/system_stm32f4xx.c</name>
+      </file>
+    </group>
+    <group>
       <name>STM32F4xx_HAL_Driver</name>
       <file>
         <name>$PROJ_DIR$/../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_iwdg.c</name>
@@ -1131,12 +1137,6 @@
       </file>
       <file>
         <name>$PROJ_DIR$/../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c</name>
-      </file>
-    </group>
-    <group>
-      <name>CMSIS</name>
-      <file>
-        <name>$PROJ_DIR$/../Src/system_stm32f4xx.c</name>
       </file>
     </group>
   </group>
