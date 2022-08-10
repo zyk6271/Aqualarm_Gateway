@@ -114,7 +114,7 @@ void ymodem_ota(uint8_t argc, char **argv)
     rt_kprintf("Please select the ota firmware file and use Ymodem to send.\n");
 
     if (!rym_recv_on_device(&rctx, rt_console_get_device(), RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_INT_RX,
-                            ymodem_on_begin, ymodem_on_data, NULL, RT_TICK_PER_SECOND))
+                            ymodem_on_begin, ymodem_on_data, NULL, RT_TICK_PER_SECOND*5))
     {
         rt_kprintf("Download firmware to flash success.\n");
         rt_kprintf("System now will restart...\r\n");
