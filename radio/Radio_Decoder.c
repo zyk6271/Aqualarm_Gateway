@@ -193,6 +193,10 @@ void GatewayWarningSolve(int rssi,uint8_t *rx_buffer,uint8_t rx_len)
                 DeviceCheck(Rx_message.Device_ID,Rx_message.From_ID);
                 Slave_Heart(Rx_message.Device_ID,Rx_message.Rssi);//设备RSSI更新
                 WariningUpload(Rx_message.From_ID,Rx_message.Device_ID,2,Rx_message.Data);//终端低电量
+                if(Rx_message.Data==2)//ultra low
+                {
+                    MotoUpload(Rx_message.From_ID,0);//主控开关阀
+                }
                 break;
             case 7:
                 InitWarn_Main(Rx_message.From_ID);//报警状态
