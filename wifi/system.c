@@ -176,7 +176,14 @@ void product_info_update(unsigned char pid_flag)
     cJSON_AddNumberToObject(root, "m", CONFIG_MODE);
     cJSON_AddNumberToObject(root, "cap", sub_ability.whole);
     if(0x01 == pid_flag) {
-        cJSON_AddStringToObject(root, "p", GW_PRODUCT_KEY);
+        if(DeviceType_Read())
+        {
+            cJSON_AddStringToObject(root, "p", GW_ENTERPRISE_PRODUCT_KEY);
+        }
+        else
+        {
+            cJSON_AddStringToObject(root, "p", GW_PERSONAL_PRODUCT_KEY);
+        }
     }
     if(0x02 == pid_flag) {
         cJSON_AddStringToObject(root, "p", MAIN_PRODUCT_KEY);
@@ -185,15 +192,18 @@ void product_info_update(unsigned char pid_flag)
     cJSON_AddNumberToObject(root, "n", CONFIG_MODE_CHOOSE);
 #endif
   
-#ifdef SECURITY_PROTECTION_ENABLE
-    cJSON_AddNumberToObject(root, "s", 1);
-#else
-    cJSON_AddNumberToObject(root, "s", 0);
-#endif
+    if(DeviceType_Read())
+    {
+        cJSON_AddNumberToObject(root, "s", 1);
+    }
+    else{
+        cJSON_AddNumberToObject(root, "s", 0);
+    }
     
-#ifdef SECURITY_PROTECTION_ALARM_DISPLAY_ENABLE
-    a |= 0x01;
-#endif
+    if(DeviceType_Read())
+    {
+        a |= 0x01;
+    }
     
     if(0 != a) {
         cJSON_AddNumberToObject(root, "a", a);

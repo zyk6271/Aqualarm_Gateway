@@ -29,6 +29,16 @@ uint8_t Sync_Counter = 1;
 rt_timer_t Sync_Request_t = RT_NULL;
 rt_timer_t Sync_Timeout_t = RT_NULL;
 
+void Secure_Sync(void)//C1 00 01
+{
+    if(DeviceType_Read())
+    {
+        unsigned short length = 0;
+        length = set_wifi_uart_byte(length, ALARM_STATE_SET_SUBCMD); //写入子命令0x00
+        length = set_wifi_uart_byte(length, 1);
+        wifi_uart_write_frame(SECURITY_PROTECT_ALARM_CMD, MCU_TX_VER, length);
+    }
+}
 void WariningUpload(uint32_t from_id,uint32_t device_id,uint8_t type,uint8_t value)
 {
     unsigned char *device_id_buf = rt_malloc(20);
@@ -107,6 +117,7 @@ void WariningUpload(uint32_t from_id,uint32_t device_id,uint8_t type,uint8_t val
                break;
         }
     }
+	Secure_Sync();//C1 00 01
     rt_free(device_id_buf);
     rt_free(from_id_buf);
 }

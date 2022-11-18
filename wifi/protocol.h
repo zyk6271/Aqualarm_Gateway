@@ -30,7 +30,10 @@
 #define MAIN_PRODUCT_KEY "q3xnn9yqt55ifaxm"    //开发平台创建产品后生成的16位字符产品唯一标识
 #define GW_PRODUCT_KEY "rbptoajhwdfsdmbu"    //开发平台创建产品后生成的16位字符产品唯一标识
 
-#define MCU_VER "2.1.5"                                 //用户的软件版本,用于MCU固件升级,MCU升级版本需修改
+#define GW_PERSONAL_PRODUCT_KEY "rbptoajhwdfsdmbu"    //开发平台创建产品后生成的16位字符产品唯一标识
+#define GW_ENTERPRISE_PRODUCT_KEY "vtboj5kndkktrtrj"    //开发平台创建产品后生成的16位字符产品唯一标识
+
+#define MCU_VER "2.1.6"                                 //用户的软件版本,用于MCU固件升级,MCU升级版本需修改
 
 //配网方式选择,默认为CONFIG_MODE_DEFAULT,只能三选一
 #define CONFIG_MODE     CONFIG_MODE_DEFAULT             //默认配网方式
@@ -297,7 +300,7 @@ upload_group_local_change_dp_result内部有#err提示,完成函数后请删除�
 并在protocol.c文件中，在结果处理函数内查看结果,
 这些函数内部有#err提示,完成函数后请删除该#err
 ******************************************************************************/
-//#define         SECURITY_PROTECTION_ENABLE            //开启安防传感相关功能
+#define         SECURITY_PROTECTION_ENABLE            //开启安防传感相关功能
 
 #ifdef SECURITY_PROTECTION_ENABLE
 /******************************************************************************
@@ -355,6 +358,21 @@ mcu在wifi模块正确联网后可调用 get_green_time_with_zone() 函数发起
                         1:网关的dp数据点序列号重新定义
           **此为自动生成代码,如在开发平台有相关修改请重新下载MCU_SDK**
 ******************************************************************************/
+//报警声开关(可下发可上报)
+//备注:
+#define DPID_SWITCH_ALARM_SOUND 4
+//告警信息(只上报)
+//备注:
+#define DPID_ALARM_MSG 26
+//主机状态(可下发可上报)
+//备注:
+#define DPID_MASTER_STATE 32
+//恢复出厂(可下发可上报)
+//备注:
+#define DPID_FACTORY_RESET 34
+//主动报警(可下发可上报)
+//备注:
+#define DPID_ALARM_ACTIVE 45
 //主控阀门(可下发可上报)
 //备注:开阀方式1：设备自身开关阀(0关1开)
 #define DPID_DEVICE_STATE 101

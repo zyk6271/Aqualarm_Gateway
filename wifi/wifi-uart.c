@@ -62,7 +62,6 @@ void data_parsing(void)
     {
         ch = uart_sample_get_char();
         uart_receive_input(ch);
-        //LOG_RAW("Recv %X\r\n",ch);
     }
 }
 void WiFi_Byte_Send(uint8_t data)
@@ -89,16 +88,15 @@ void wifi_uart_init(void)
     config.baud_rate = BAUD_RATE_115200;        //修改波特率为 115200
     config.data_bits = DATA_BITS_8;           //数据位 8
     config.stop_bits = STOP_BITS_1;           //停止位 1
-    config.bufsz     = 128;                   //修改缓冲区 buff size 为 128
     config.parity    = PARITY_NONE;           //无奇偶校验位
     rt_device_control(serial, RT_DEVICE_CTRL_CONFIG, &config);
     /* 以中断接收及轮询发送模式打开串口设备 */
-    rt_device_open(serial, RT_DEVICE_FLAG_INT_RX);
+    rt_device_open(serial, RT_DEVICE_FLAG_RX_NON_BLOCKING | RT_DEVICE_FLAG_TX_BLOCKING);
     /* 设置接收回调函数 */
     rt_device_set_rx_indicate(serial, uart_rx_ind);
 
     /* 创建 serial 线程 */
-    WiFi_Uart_Thread = rt_thread_create("serial", (void (*)(void *parameter))data_parsing, RT_NULL, 1024, 25, 10);
+    WiFi_Uart_Thread = rt_thread_create("serial", (void (*)(void *parameter))data_parsing, RT_NULL, 512, 7, 10);
 
     /* 创建成功则启动线程 */
     if (WiFi_Uart_Thread != RT_NULL)

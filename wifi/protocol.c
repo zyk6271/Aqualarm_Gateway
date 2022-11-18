@@ -41,21 +41,8 @@
 ******************************************************************************/
 const DOWNLOAD_CMD_S download_cmd[] =
 {
-    {DPID_DEVICE_STATE, DP_TYPE_BOOL},
-    {DPID_VALVE1_CHECK_FAIL, DP_TYPE_BOOL},
-    {DPID_DEVICE_ALARM, DP_TYPE_BOOL},
     {DPID_CONTROL_STATE, DP_TYPE_BOOL},
-    {DPID_SIGN_STATE, DP_TYPE_ENUM},
-    {DPID_DELAY_STATE, DP_TYPE_BOOL},
-    {DPID_TEMP_STATE, DP_TYPE_BOOL},
-    {DPID_DOOR_ID, DP_TYPE_VALUE},
-    {DPID_LINE_STATE, DP_TYPE_BOOL},
-    {DPID_DELAY_TIME, DP_TYPE_ENUM},
-    {DPID_NORMAL_STATA, DP_TYPE_BOOL},
-    {DPID_SELF_ID, DP_TYPE_VALUE},
-    {DPID_VALVE2_CHECK_FAIL, DP_TYPE_BOOL},
-    {DPID_VALVE1_CHECK_SUCCESS, DP_TYPE_BOOL},
-    {DPID_VALVE2_CHECK_SUCCESS, DP_TYPE_BOOL},
+    {DPID_MASTER_STATE, DP_TYPE_ENUM},
 };
 
 
@@ -141,6 +128,18 @@ static unsigned char dp_download_control_state_handle(const unsigned char value[
     else
         return ERROR;
 }
+static unsigned char dp_download_gw_state_handle(const unsigned char value[], unsigned short length, unsigned char *sub_id_buf, unsigned char sub_id_len)
+{
+    //示例:当前DP类型为enum
+    unsigned char ret;
+
+    //处理完DP数据后应有反馈
+    ret = mcu_dp_enum_update(32,mcu_get_dp_download_enum(value,length),sub_id_buf, sub_id_len);
+    if(ret == SUCCESS)
+        return SUCCESS;
+    else
+        return ERROR;
+}
 /******************************************************************************
                                 WARNING!!!                     
 此部分函数用户请勿修改!!
@@ -163,13 +162,27 @@ unsigned char dp_download_handle(unsigned char dpid,const unsigned char value[],
     完成用需要将处理结果反馈至APP端,否则APP会认为下发失败
     请在该函数根据子设备的id自行实现子设备的dpid处理
     ****************************************************************/
+    uint32_t sub_id = atol(sub_id_buf);
     unsigned char ret;
-    switch(dpid) {
-        case DPID_CONTROL_STATE:
-            ret = dp_download_control_state_handle(value,length,sub_id_buf,sub_id_len);
-        break;
-        default:
-        break;
+    if(sub_id>0){
+        switch(dpid)
+        {
+            case DPID_CONTROL_STATE:
+                ret = dp_download_control_state_handle(value,length,sub_id_buf,sub_id_len);
+                break;
+            default:
+                break;
+        }
+    }
+    else {
+        switch(dpid)
+        {
+            case DPID_MASTER_STATE:
+                ret = dp_download_gw_state_handle(value,length,sub_id_buf,sub_id_len);
+                break;
+            default:
+                break;
+        }
     }
     return ret;
 }
@@ -1936,7 +1949,7 @@ void get_green_time_with_zone_result(const unsigned char p_data[], unsigned shor
  */
 static void defence_mode_set_result(unsigned char result)
 {
-    #error "请自行实现当前布防模式设置结果处理代码,完成后请删除该行"
+    //#error "请自行实现当前布防模式设置结果处理代码,完成后请删除该行"
     if(0 == result) {
         //成功
     }else {
@@ -1997,7 +2010,7 @@ static void security_protect_infor_get_result(const unsigned char p_data[], unsi
     }
     countdown = item->valueint;
     
-    #error "请自行实现当前安防信息获取结果处理代码,完成后请删除该行"
+    //#error "请自行实现当前安防信息获取结果处理代码,完成后请删除该行"
     //请在此处添加当前安防信息获取结果处理代码,
     // p_mode: 布防模式  “0”:disarm撤防(固定不变)  “1”:在家布防  “2”:离家布防
     // alarm: 报警状态  0：报警延时,报警中  非0：无报警
@@ -2056,7 +2069,7 @@ static void security_protect_infor_syn(const unsigned char p_data[], unsigned sh
     }
     sound = item->valueint;
     
-    #error "请自行实现当前安防信息同步处理代码,完成后请删除该行"
+    //#error "请自行实现当前安防信息同步处理代码,完成后请删除该行"
     //请在此处添加当前安防信息同步处理代码,
     // p_mode: 布防模式  “0”:disarm撤防(固定不变)  “1”:在家布防  “2”:离家布防
     // delay: 延时布防时间  0：表示没有延时；  非0：表示延时时间，单位：s
@@ -2110,7 +2123,7 @@ static void dev_security_protect_event_syn(const unsigned char p_data[], unsigne
     }
     p_event = item->valuestring;
     
-    #error "请自行实现当前安防信息同步处理代码,完成后请删除该行"
+    //#error "请自行实现当前安防信息同步处理代码,完成后请删除该行"
     //请在此处添加当前安防信息同步处理代码,
     // status: 事件  0:disarm撤防；  1:进入布防（倒计时后在家或离家）；  2:有忽略事件发生，主要用于触发播放声音；  3：倒计时开始
     // p_event: 事件信息  “0”：表示无倒计时,目前只在事件报警倒计时时反馈倒计时时间
@@ -2175,7 +2188,7 @@ void security_protect_infor_result(const unsigned char p_data[], unsigned short 
  */
 static void alarm_state_set_result(unsigned char result)
 {
-    #error "请自行实现报警状态设置结果处理代码,完成后请删除该行"
+    //#error "请自行实现报警状态设置结果处理代码,完成后请删除该行"
     if(0 == result) {
         //成功
     }else {
@@ -2183,7 +2196,7 @@ static void alarm_state_set_result(unsigned char result)
     }
 }
 
-#ifndef SECURITY_PROTECTION_ALARM_DISPLAY_ENABLE
+#ifdef SECURITY_PROTECTION_ALARM_DISPLAY_ENABLE
 /**
  * @brief  取消报警状态同步
  * @param[in] {result} 模块返回结果
@@ -2192,7 +2205,7 @@ static void alarm_state_set_result(unsigned char result)
  */
 static void cancel_alarm_state_syn(unsigned char result)
 {
-    #error "请自行实现取消报警状态同步处理代码,完成后请删除该行"
+    //#error "请自行实现取消报警状态同步处理代码,完成后请删除该行"
     if(0 == result) {
         //成功取消报警
     }else {
@@ -2250,7 +2263,7 @@ static void dev_alarm_infor_syn(const unsigned char p_data[], unsigned short dat
     }
     p_dp_inf = item->valuestring;
     
-    #error "请自行实现设备报警信息同步处理代码,完成后请删除该行"
+    //#error "请自行实现设备报警信息同步处理代码,完成后请删除该行"
     //请在此处添加设备报警信息同步处理代码,
     // type: 触发报警设备类型  0：非环境设备；  1：环境设备.
     // p_subid: 子设备id
@@ -2275,7 +2288,7 @@ EXIT:
  */
 static void dev_alarm_delay_state_syn(unsigned char result)
 {
-    #error "请自行实现设备报警延时状态同步代码,完成后请删除该行"
+    //#error "请自行实现设备报警延时状态同步代码,完成后请删除该行"
     switch(result) {
         case 0:
             //报警延时未创建
@@ -2349,7 +2362,7 @@ static void new_dev_alarm_infor_syn(const unsigned char p_data[], unsigned short
     }
     p_gp = item->valuestring;
     
-    #error "请自行实现新设备报警信息显示同步处理代码,完成后请删除该行"
+    //#error "请自行实现新设备报警信息显示同步处理代码,完成后请删除该行"
     //请在此处添加设备报警信息同步处理代码,
     // type: 触发报警设备类型  0：非环境设备；  1：环境设备.
     // p_subid: 子设备id
@@ -2374,7 +2387,7 @@ EXIT:
  */
 static void new_dev_alarm_state_syn(unsigned char result)
 {
-    #error "请自行实现新设备报警状态同步处理代码,完成后请删除该行"
+    //#error "请自行实现新设备报警状态同步处理代码,完成后请删除该行"
     if(0 == result) {
         //取消报警
     }else {

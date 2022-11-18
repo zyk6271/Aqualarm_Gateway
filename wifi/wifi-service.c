@@ -60,7 +60,7 @@ void service_callback(void *parameter)
     while(1)
     {
         wifi_uart_service();
-        rt_thread_mdelay(10);
+        rt_thread_mdelay(5);
     }
 }
 void wifi_test(void)

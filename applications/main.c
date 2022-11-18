@@ -25,7 +25,8 @@
 
 int main(void)
 {
-    LOG_I("System Version is %s\r\n",MCU_VER);
+    RadioID_Init();
+    LOG_I("System Version:%s,Radio ID:%ld,Device Type:%d\r\n",MCU_VER,RadioID_Read(),DeviceType_Read());
     flash_Init();
     led_Init();
     LoadDevice2Memory();

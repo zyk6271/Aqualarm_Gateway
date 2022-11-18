@@ -26,6 +26,7 @@ rt_thread_t Radio_Queue433 = RT_NULL;
 
 uint32_t Self_Id = 0;
 uint32_t Self_Default_Id = 40000000;
+uint8_t Self_Type = 0;
 
 extern struct ax5043 rf_433;
 
@@ -150,18 +151,30 @@ void RadioDequeue(void *paramaeter)
         rt_thread_mdelay(50);
     }
 }
-void RadioDequeueTaskInit(void)
+void RadioID_Init(void)
 {
     int *p;
-    p=(int *)(0x0800FFF0);//这就是已知的地址，要强制类型转换
-    Self_Id = *p;//从Flash加载ID
-    //Self_Id = 0;//加载为空值
+    p=(int *)(0x0800FFF0);
+    Self_Id = *p;
     if(Self_Id==0xFFFFFFFF || Self_Id==0)
     {
         Self_Id = Self_Default_Id;
     }
-    LOG_I("Self ID is %d\r\n",Self_Id);
+    if(Self_Id >= 46000001 && Self_Id <= 49999999)
+    {
+        Self_Type = 1;
+    }
+}
+uint32_t RadioID_Read(void)
+{
+    return Self_Id;
+}
+uint8_t DeviceType_Read(void)
+{
+    return Self_Type;
+}
+void RadioDequeueTaskInit(void)
+{
     Radio_Queue433 = rt_thread_create("Radio_Queue433", RadioDequeue, RT_NULL, 1024, 9, 10);
     if(Radio_Queue433)rt_thread_startup(Radio_Queue433);
 }
-MSH_CMD_EXPORT(RadioDequeueTaskInit,RadioDequeueTaskInit);

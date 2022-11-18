@@ -87,9 +87,8 @@
 /* Device Drivers */
 
 #define RT_USING_DEVICE_IPC
-#define RT_PIPE_BUFSZ 512
 #define RT_USING_SERIAL
-#define RT_SERIAL_RB_BUFSZ 4096
+#define RT_USING_SERIAL_V2
 #define RT_USING_PIN
 #define RT_USING_SPI
 #define RT_USING_SFUD
@@ -191,9 +190,9 @@
 
 #define PKG_USING_EASYFLASH
 #define PKG_EASYFLASH_ENV
-#define PKG_EASYFLASH_ERASE_GRAN 131072
-#define PKG_EASYFLASH_WRITE_GRAN_8BITS
-#define PKG_EASYFLASH_WRITE_GRAN 8
+#define PKG_EASYFLASH_ERASE_GRAN 4096
+#define PKG_EASYFLASH_WRITE_GRAN_1BIT
+#define PKG_EASYFLASH_WRITE_GRAN 1
 #define PKG_EASYFLASH_START_ADDR 0
 #define PKG_USING_EASYFLASH_V410
 #define PKG_EASYFLASH_VER_NUM 0x40100
@@ -204,10 +203,6 @@
 /* enhanced kernel services */
 
 /* end of enhanced kernel services */
-
-/* POSIX extension functions */
-
-/* end of POSIX extension functions */
 
 /* acceleration: Assembly language or algorithmic acceleration packages */
 
@@ -251,6 +246,10 @@
 #define BUTTON_DOUBLE_TIME 15
 #define BUTTON_LONG_TIME 200
 #define PKG_USING_BUTTON_V101
+
+/* Kendryte SDK */
+
+/* end of Kendryte SDK */
 #define PKG_USING_AGILE_LED
 #define PKG_AGILE_LED_DEBUG
 #define PKG_AGILE_LED_USING_THREAD_AUTO_INIT
@@ -278,6 +277,26 @@
 
 /* end of entertainment: terminal games and other interesting software packages */
 /* end of miscellaneous packages */
+
+/* Arduino libraries */
+
+
+/* Sensor libraries */
+
+/* end of Sensor libraries */
+
+/* Display libraries */
+
+/* end of Display libraries */
+
+/* Timing libraries */
+
+/* end of Timing libraries */
+
+/* Project libraries */
+
+/* end of Project libraries */
+/* end of Arduino libraries */
 /* end of RT-Thread online packages */
 
 /* samples: kernel and components samples */

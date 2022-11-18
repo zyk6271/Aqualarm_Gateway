@@ -70,10 +70,14 @@ extern "C"
 #define BSP_USING_UART1
 #define BSP_UART1_TX_PIN       "PA9"
 #define BSP_UART1_RX_PIN       "PA10"
+#define BSP_UART1_RX_BUFSIZE   1024
+#define BSP_UART1_TX_BUFSIZE   128
 
 #define BSP_USING_UART2
 #define BSP_UART2_TX_PIN       "PA2"
 #define BSP_UART2_RX_PIN       "PA3"
+#define BSP_UART2_RX_BUFSIZE   128
+#define BSP_UART2_TX_BUFSIZE   128
 
 /*-------------------------- UART CONFIG END --------------------------*/
 
