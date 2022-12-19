@@ -88,7 +88,8 @@
 
 #define RT_USING_DEVICE_IPC
 #define RT_USING_SERIAL
-#define RT_USING_SERIAL_V2
+#define RT_USING_SERIAL_V1
+#define RT_SERIAL_RB_BUFSZ 2048
 #define RT_USING_PIN
 #define RT_USING_SPI
 #define RT_USING_SFUD

@@ -66,7 +66,6 @@ void data_parsing(void)
 }
 void WiFi_Byte_Send(uint8_t data)
 {
-    //LOG_RAW("Send %X\r\n",data);
     rt_device_write(serial,0,&data,1);
 }
 void wifi_uart_init(void)
@@ -91,12 +90,12 @@ void wifi_uart_init(void)
     config.parity    = PARITY_NONE;           //无奇偶校验位
     rt_device_control(serial, RT_DEVICE_CTRL_CONFIG, &config);
     /* 以中断接收及轮询发送模式打开串口设备 */
-    rt_device_open(serial, RT_DEVICE_FLAG_RX_NON_BLOCKING | RT_DEVICE_FLAG_TX_BLOCKING);
+    rt_device_open(serial, RT_DEVICE_FLAG_INT_RX);
     /* 设置接收回调函数 */
     rt_device_set_rx_indicate(serial, uart_rx_ind);
 
     /* 创建 serial 线程 */
-    WiFi_Uart_Thread = rt_thread_create("serial", (void (*)(void *parameter))data_parsing, RT_NULL, 512, 7, 10);
+    WiFi_Uart_Thread = rt_thread_create("wifi_uart", (void (*)(void *parameter))data_parsing, RT_NULL, 512, 7, 10);
 
     /* 创建成功则启动线程 */
     if (WiFi_Uart_Thread != RT_NULL)

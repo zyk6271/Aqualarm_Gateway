@@ -15,7 +15,6 @@
 #include "led.h"
 #include "wifi-uart.h"
 #include "heart.h"
-#include "dog.h"
 #include "board.h"
 #include "protocol.h"
 
