@@ -266,7 +266,6 @@ void GatewayControlSolve(int rssi,uint8_t *rx_buffer,uint8_t rx_len)
                 MotoUpload(Rx_message.From_ID,Rx_message.Data);
                 break;
             case 5:
-                Sync_Refresh();
                 MotoUpload(Rx_message.From_ID,Rx_message.Data);//主控开关阀
                 Ack_Report(Rx_message.From_ID);
                 InitWarn_Main(Rx_message.From_ID);//报警状态

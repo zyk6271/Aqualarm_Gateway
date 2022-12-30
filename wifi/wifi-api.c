@@ -26,8 +26,8 @@ Remote_Info Remote_Device={0};
 extern Device_Info Global_Device;
 
 uint8_t Sync_Counter = 1;
-rt_timer_t Sync_Request_t = RT_NULL;
-rt_timer_t Sync_Timeout_t = RT_NULL;
+static rt_timer_t sync_next_timer = RT_NULL;
+static rt_timer_t sync_timeout_timer = RT_NULL;
 
 void Secure_Sync(void)//C1 00 01
 {
@@ -502,7 +502,7 @@ void Remote_Device_Add(uint32_t device_id)
 void Remote_Device_Clear(void)
 {
     LOG_D("Remote_Device_Clear\r\n");
-    memset(&Remote_Device,0,sizeof(Remote_Device));
+    rt_memset(&Remote_Device,0,sizeof(Remote_Device));
 }
 uint8_t Remote_Get_Key_Valid(uint32_t Device_ID)//查询内存中的ID
 {
@@ -532,11 +532,10 @@ uint8_t Remote_Device_Delete(uint32_t Device_ID)//查询内存中的ID
 }
 rt_thread_t Sync_t = RT_NULL;
 rt_sem_t Sync_Once_Sem = RT_NULL;
-uint8_t Sync_Recv = 0;
 uint8_t Sync_Start = 0;
-uint8_t Get_Main_Valid(uint32_t device_id,uint32_t bind_id)
+uint8_t Get_Main_Valid(uint32_t device_id)
 {
-    if(device_id>0 && device_id<20000000 && bind_id==0)
+    if(device_id>0 && device_id<20000000)
     {
         return RT_EOK;
     }
@@ -544,19 +543,16 @@ uint8_t Get_Main_Valid(uint32_t device_id,uint32_t bind_id)
 }
 uint8_t Get_Next_Main(void)
 {
-    uint8_t Num;
-    Num = Sync_Counter;
-    while(Num--)
+    while(Sync_Counter--)
     {
-        if(Get_Main_Valid(Global_Device.ID[Num],Global_Device.Bind_ID[Num])==RT_EOK)
+        if(Get_Main_Valid(Global_Device.ID[Sync_Counter])==RT_EOK)
         {
-            Sync_Counter = Num;
             return RT_EOK;
         }
     }
     return RT_ERROR;
 }
-void Sync_Timeout_Callback(void *parameter)
+void Sync_Next_Callback(void *parameter)
 {
     if(Get_Next_Main()==RT_EOK)
     {
@@ -566,7 +562,16 @@ void Sync_Timeout_Callback(void *parameter)
     else
     {
         Sync_Start = 0;
-        LOG_I("Sync is Done\r\n");
+        LOG_I("Sync is Finish\r\n");
+    }
+}
+void Sync_Timeout_Callback(void *parameter)
+{
+    if(Global_Device.SyncRecv[Sync_Counter]==0)
+    {
+        Global_Device.SyncRetry[Sync_Counter]++;
+        LOG_W("Sync_Request %d is fail,Retry num is %d\r\n",Global_Device.ID[Sync_Counter],Global_Device.SyncRetry[Sync_Counter]);
+        rt_sem_release(Sync_Once_Sem);
     }
 }
 void Sync_t_Callback(void *parameter)
@@ -574,67 +579,60 @@ void Sync_t_Callback(void *parameter)
     while(1)
     {
         rt_sem_take(Sync_Once_Sem,RT_WAITING_FOREVER);
-        Sync_Start = 1;
-        rt_thread_mdelay(10000);
-        if(Global_Device.ID[Sync_Counter]==0)continue;
         Device_Add2Flash_Wifi(Global_Device.ID[Sync_Counter],0);
         if(Global_Device.SyncRetry[Sync_Counter]<3)
         {
-            Sync_Recv = 0;
-            GatewayDataEnqueue(Global_Device.ID[Sync_Counter],0,0,4,0);
-            LOG_I("Sync_Request %d is download\r\n",Global_Device.ID[Sync_Counter]);
-            rt_thread_mdelay(10000);
-            if(Sync_Recv==0)
-            {
-                Global_Device.SyncRetry[Sync_Counter]++;
-                LOG_W("Sync_Request %d is fail,Retry num is %d\r\n",Global_Device.ID[Sync_Counter],Global_Device.SyncRetry[Sync_Counter]);
-                rt_sem_release(Sync_Once_Sem);
-            }
+            Sync_Download(Global_Device.ID[Sync_Counter]);
         }
-        else {
-            rt_timer_stop(Sync_Timeout_t);
-            if(Get_Next_Main()==RT_EOK){//同步重试次数用尽切换至下一个设备
+        else
+        {
+            rt_timer_stop(sync_next_timer);
+            if(Get_Next_Main()==RT_EOK)//同步重试次数用尽切换至下一个设备
+            {
                 rt_sem_release(Sync_Once_Sem);
             }
-            else {//同步重试次数用尽且不存在下一个设备
+            else //同步重试次数用尽且不存在下一个设备
+            {
+                Sync_Start = 0;
                 Global_Device.SyncRetry[Sync_Counter] = 0;
                 LOG_I("Sync is Done\r\n");
             }
+            rt_thread_mdelay(3000);
         }
     }
 }
 void Sync_Init(void)
 {
-    if(Sync_Once_Sem == RT_NULL)
-    {
-        Sync_Once_Sem = rt_sem_create("Sync_Once_Sem", 0, RT_IPC_FLAG_FIFO);
-    }
-    if(Sync_Timeout_t == RT_NULL)
-    {
-        Sync_Timeout_t = rt_timer_create("Sync_Timeout", Sync_Timeout_Callback, RT_NULL, 5000, RT_TIMER_FLAG_ONE_SHOT|RT_TIMER_FLAG_SOFT_TIMER);
-    }
-    if(Sync_t == RT_NULL)
-    {
-        Sync_t = rt_thread_create("sync", Sync_t_Callback, RT_NULL, 2048, 10, 10);
-        rt_thread_startup(Sync_t);
-    }
+    Sync_Once_Sem = rt_sem_create("Sync_Once_Sem", 0, RT_IPC_FLAG_FIFO);
+    sync_next_timer = rt_timer_create("Sync_Next", Sync_Next_Callback, RT_NULL, 10000, RT_TIMER_FLAG_ONE_SHOT|RT_TIMER_FLAG_SOFT_TIMER);
+    sync_timeout_timer = rt_timer_create("Sync_Timeout", Sync_Timeout_Callback, RT_NULL, 5000, RT_TIMER_FLAG_ONE_SHOT|RT_TIMER_FLAG_SOFT_TIMER);
+    Sync_t = rt_thread_create("sync_t", Sync_t_Callback, RT_NULL, 2048, 10, 10);
+    rt_thread_startup(Sync_t);
 }
 void Sync_Request(void)
 {
-    rt_timer_stop(Sync_Timeout_t);
+    Sync_Start = 1;
+    rt_timer_stop(sync_timeout_timer);
+    rt_timer_stop(sync_next_timer);
     Sync_Counter = Global_Device.Num;
     Get_Next_Main();
     rt_sem_release(Sync_Once_Sem);
 }
-MSH_CMD_EXPORT(Sync_Request,Sync_Request);
 void Sync_Refresh(void)
 {
     if(Sync_Start)
     {
-        Sync_Recv = 1;
+        Global_Device.SyncRecv[Sync_Counter] = 1;
         Global_Device.SyncRetry[Sync_Counter] = 0;
-        rt_timer_start(Sync_Timeout_t);
+        rt_timer_stop(sync_timeout_timer);
+        rt_timer_start(sync_next_timer);
         LOG_I("Sync_Refresh\r\n");
     }
 }
-MSH_CMD_EXPORT(mcu_start_wifitest,mcu_start_wifitest);
+void Sync_Download(uint32_t ID)
+{
+    Global_Device.SyncRecv[Sync_Counter] = 0;
+    GatewayDataEnqueue(ID,0,0,4,0);
+    LOG_I("Sync_Request %d is download\r\n",ID);
+    rt_timer_start(sync_timeout_timer);
+}
