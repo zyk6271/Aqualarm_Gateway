@@ -19,7 +19,7 @@
 #include "Radio_Drv.h"
 
 #define DBG_TAG "radio_common"
-#define DBG_LVL DBG_LOG
+#define DBG_LVL DBG_INFO
 #include <rtdbg.h>
 
 uint8_t axradio_get_pllvcoi(struct ax5043 *dev)
@@ -46,8 +46,8 @@ uint8_t axradio_get_pllvcoi(struct ax5043 *dev)
 }
 void vcoi_rng_get(struct ax5043 *dev)
 {
-    LOG_I("%s VCO is %x\r\n",dev->name,axradio_get_pllvcoi(dev));
-    LOG_I("%s RNG is %d\r\n",dev->name,dev->axradio_phy_chanpllrng[0]);
+    LOG_D("%s VCO is %x\r\n",dev->name,axradio_get_pllvcoi(dev));
+    LOG_D("%s RNG is %d\r\n",dev->name,dev->axradio_phy_chanpllrng[0]);
 }
 void InitAx5043REG(struct ax5043 *dev)
 {
@@ -392,11 +392,12 @@ void transmit_packet_task(struct ax5043 *dev,uint8_t *Buf, uint8_t Length)
     SpiWriteSingleAddressRegister(dev,REG_AX5043_IRQMASK0, 0x00);     //AX5043_IRQMASK0 = 0x00;
     SpiWriteSingleAddressRegister(dev,REG_AX5043_IRQMASK1, 0x01);     //AX5043_IRQMASK1 = 0x01; // enable xtal ready interrupt
     SpiReadSingleAddressRegister(dev,REG_AX5043_POWSTICKYSTAT);
+    rf_433_send_timer_start();
 }
-void Normal_send(struct ax5043 *dev,uint8_t *Buf, uint8_t Length)
+void RF_Send(struct ax5043 *dev,char *send_buf, uint8_t send_len)
 {
     dev->axradio_txbuffer_cnt = 0;
-    transmit_packet_task(dev,Buf,Length);
+    transmit_packet_task(dev,send_buf,send_len);
 }
 void ChangeMaxPower(struct ax5043 *dev)
 {

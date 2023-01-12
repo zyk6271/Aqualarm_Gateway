@@ -14,7 +14,7 @@
 #include <fal.h>
 
 #define DBG_TAG "wifi_ota"
-#define DBG_LVL DBG_LOG
+#define DBG_LVL DBG_INFO
 #include <rtdbg.h>
 
 #define DEFAULT_DOWNLOAD_PART "download"

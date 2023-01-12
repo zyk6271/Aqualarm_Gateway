@@ -12,5 +12,6 @@
 
 void Remote_Device_Add(uint32_t device_id);
 void Heart_Init(void);
+uint8_t Device_Heart(uint32_t Device_ID,uint8_t Heart);
 
 #endif /* APPLICATIONS_HEART_H_ */

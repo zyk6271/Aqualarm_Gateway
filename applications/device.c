@@ -151,14 +151,13 @@ void Detect_KO_K1(void)
 }
 void button_task_entry(void *parameter)
 {
-    LOG_I("Button Init Success\r\n");
     while(1)
     {
         Button_Process();
         rt_thread_mdelay(10);
     }
 }
-void button_Init(void)
+void Button_Init(void)
 {
     Key_Init();
     Button_Create("Key0",&Key0,Read_K0_Level,0);

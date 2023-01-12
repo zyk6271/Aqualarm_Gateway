@@ -25,8 +25,4 @@ typedef struct
     int Rssi;
 }Message;
 
-
-void Set_Learn_Flag(uint8_t value);
-uint8_t Get_Learn_Flag(void);
-
 #endif /* RADIO_RADIO_DECODER_H_ */

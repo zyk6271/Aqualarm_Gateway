@@ -930,7 +930,6 @@ void qur_subdev_list(void)
     wifi_uart_write_frame(QUR_SUBDEV_LIST_CMD, MCU_TX_VER, 0);
 }
 #endif
-MSH_CMD_EXPORT(qur_subdev_list,qur_subdev_list);
 #ifdef UART_CONFIG_INTEGRATED_ENABLE
 /**
  * @brief  串口配网（一体式）

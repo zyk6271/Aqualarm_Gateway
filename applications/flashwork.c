@@ -20,14 +20,14 @@
 #include "wifi-api.h"
 
 #define DBG_TAG "FLASH"
-#define DBG_LVL DBG_LOG
+#define DBG_LVL DBG_INFO
 #include <rtdbg.h>
 
 rt_spi_flash_device_t fm25q16;
 char read_value_temp[64]={0};
 Device_Info Global_Device={0};
 
-int flash_Init(void)
+int Flash_Init(void)
 {
     rt_err_t status;
     extern rt_spi_flash_device_t rt_sfud_flash_probe(const char *spi_flash_dev_name, const char *spi_dev_name);
@@ -50,6 +50,7 @@ int flash_Init(void)
         LOG_E("easyflash_init fail\r\n");
         return RT_ERROR;
     };
+    LoadDevice2Memory();
     LOG_I("Storage Init Success\r\n");
     return RT_EOK;
 }
@@ -58,7 +59,7 @@ uint32_t Flash_Get_Learn_Nums(void)
     uint8_t read_len = 0;
     uint32_t read_value = 0;
     char *keybuf="Learn_Nums";
-    memset(read_value_temp,0,64);
+    rt_memset(read_value_temp,0,64);
     read_len = ef_get_env_blob(keybuf, read_value_temp, 64, NULL);
     if(read_len>0)
     {
@@ -76,7 +77,7 @@ uint32_t Flash_Get_Main_Nums(void)
     uint8_t read_len = 0;
     uint32_t read_value = 0;
     char *keybuf="Main_Nums";
-    memset(read_value_temp,0,64);
+    rt_memset(read_value_temp,0,64);
     read_len = ef_get_env_blob(keybuf, read_value_temp, 64, NULL);
     if(read_len>0)
     {
@@ -106,6 +107,14 @@ void Flash_MainNums_Change(uint32_t value)
     ef_set_env(keybuf, Temp_ValueBuf);
     rt_free(Temp_ValueBuf);
     LOG_D("Writing %ld to key %s\r\n", value,keybuf);
+}
+uint8_t Get_Main_Valid(uint32_t device_id)
+{
+    if(device_id>=10000000 && device_id<20000000)
+    {
+        return RT_EOK;
+    }
+    return RT_ERROR;
 }
 uint8_t Get_LearnNums_Valid(void)
 {
@@ -304,6 +313,45 @@ uint32_t GetDoorID(uint32_t Main_ID)
     }
     return 0;
 }
+uint32_t GetIndex(uint32_t Device_ID)
+{
+    uint16_t num = Global_Device.Num;
+    if(!num)
+    {
+        return 0;
+    }
+    while(num)
+    {
+        if(Global_Device.ID[num] == Device_ID)
+        {
+            return num;
+        }
+        num--;
+    }
+    return 0;
+}
+uint8_t GetDoorValid(uint32_t Device_id)
+{
+    if(Device_id>=30000000 && Device_id<40000000)
+    {
+        return RT_EOK;
+    }
+    else
+    {
+        return RT_ERROR;
+    }
+}
+uint8_t GetMainValid(uint32_t Device_ID)
+{
+    if(Device_ID>=10000000 && Device_ID<20000000)
+    {
+        return RT_EOK;
+    }
+    else
+    {
+        return RT_ERROR;
+    }
+}
 uint8_t Del_Device(uint32_t Device_ID)
 {
     uint16_t num = Global_Device.Num;
@@ -315,7 +363,7 @@ uint8_t Del_Device(uint32_t Device_ID)
     {
         if(Global_Device.ID[num]==Device_ID)
         {
-            if(Device_ID>=10000000 && Device_ID<20000000)
+            if(GetMainValid(Device_ID))
             {
                 Del_MainNums();
             }
@@ -344,7 +392,7 @@ uint8_t Del_MainBind(uint32_t Device_ID)
     {
         if((Global_Device.Bind_ID[num]==Device_ID) || (Global_Device.ID[num]==Device_ID))
         {
-            if(Device_ID>=10000000 && Device_ID<20000000)
+            if(GetMainValid(Device_ID))
             {
                 Del_MainNums();
             }
@@ -395,7 +443,7 @@ uint32_t Flash_Get_Key_Value(uint8_t type,uint32_t key)
         sprintf(keybuf, "upload:%ld", key);//将传入的数字转换成数组
         break;
     }
-    memset(read_value_temp,0,64);
+    rt_memset(read_value_temp,0,64);
     read_len = ef_get_env_blob(keybuf, read_value_temp, 64, NULL);
     if(read_len>0)
     {
@@ -406,12 +454,11 @@ uint32_t Flash_Get_Key_Value(uint8_t type,uint32_t key)
         read_value = 0;
     }
     rt_free(keybuf);//释放临时buffer对应内存空间
-    //LOG_D("Reading Key %s value %ld \r\n", keybuf, read_value);//输出
     return read_value;
 }
 void LoadDevice2Memory(void)
 {
-    memset(&Global_Device,0,sizeof(Global_Device));
+    rt_memset(&Global_Device,0,sizeof(Global_Device));
     Global_Device.Num = Flash_Get_Learn_Nums();
     Global_Device.MainNum = Flash_Get_Main_Nums();
     for(uint8_t i=1;i<=Global_Device.Num;i++)
@@ -428,162 +475,51 @@ void LoadDevice2Memory(void)
 }
 uint8_t Flash_Get_Heart(uint32_t Device_ID)//数据载入到内存中
 {
-    uint16_t num = Global_Device.Num;
-    if(!num)
-    {
-        return 0;
-    }
-    while(num)
-    {
-        if(Global_Device.ID[num]==Device_ID)
-        {
-            return Global_Device.Heart[num];
-        }
-        num--;
-    }
-    return 0;
+    uint32_t index = GetIndex(Device_ID);
+    return Global_Device.Heart[index];
 }
-uint8_t Flash_Set_Heart(uint32_t Device_ID,uint8_t heart)//数据载入到内存中
+uint8_t Flash_Set_Heart(uint32_t Device_ID,uint8_t heart)
 {
-    uint16_t num = Global_Device.Num;
-    if(!num)
-    {
-        return RT_ERROR;
-    }
-    while(num)
-    {
-        if(Global_Device.ID[num]==Device_ID)
-        {
-            if(heart)
-            {
-                Global_Device.HeartRecv[num] = 1;
-                if(Global_Device.Heart[num]==0)
-                {
-                    Set_Slave_Heart(Device_ID,1);
-                    Flash_Heart_Change(Device_ID,1);
-                    Global_Device.Heart[num] = 1;
-                    LOG_I("Main Plus %ld is online now\r\n",Device_ID);
-                }
-            }
-            else
-            {
-                if(Global_Device.Heart[num])
-                {
-                    Set_Slave_Heart(Device_ID,0);
-                    Flash_Heart_Change(Device_ID,0);
-                    Global_Device.Heart[num] = 0;
-                    LOG_W("Main Plus %ld is offline now\r\n",Device_ID);
-                }
-            }
-            return RT_EOK;
-        }
-        num--;
-    }
-    return RT_ERROR;
+    uint32_t index = GetIndex(Device_ID);
+    if(index == 0)return RT_ERROR;
+    Global_Device.Heart[index] = heart;
+    Flash_Heart_Change(Device_ID,heart);
+    return RT_EOK;
 }
-uint8_t Flash_Get_UploadFlag(uint32_t Device_ID)//数据载入到内存中
+uint8_t Flash_Get_UploadFlag(uint32_t Device_ID)
 {
-    uint16_t num = Global_Device.Num;
-    if(!num)
-    {
-        return 0;
-    }
-    while(num)
-    {
-        if(Global_Device.ID[num]==Device_ID)
-        {
-            return Global_Device.UploadFlag[num];
-        }
-        num--;
-    }
-    return 0;
+    uint32_t index = GetIndex(Device_ID);
+    return Global_Device.UploadFlag[index];
 }
-uint8_t Flash_Set_UploadFlag(uint32_t Device_ID,uint8_t Flag)//数据载入到内存中
+uint8_t Flash_Set_UploadFlag(uint32_t Device_ID,uint8_t Flag)
 {
-    uint16_t num = Global_Device.Num;
-    if(!num)
-    {
-        return RT_ERROR;
-    }
-    while(num)
-    {
-        if(Global_Device.ID[num]==Device_ID)
-        {
-            Global_Device.UploadFlag[num] = Flag;
-            Flash_UploadFlag_Change(Device_ID,Flag);
-            return RT_EOK;
-        }
-        num--;
-    }
-    return RT_ERROR;
+    uint32_t index = GetIndex(Device_ID);
+    if(index == 0)return RT_ERROR;
+    Global_Device.UploadFlag[index] = Flag;
+    Flash_UploadFlag_Change(Device_ID,Flag);
+    return RT_EOK;
 }
-uint8_t Flash_Get_Moto(uint32_t Device_ID)//数据载入到内存中
+uint8_t Flash_Get_Moto(uint32_t Device_ID)
 {
-    uint16_t num = Global_Device.Num;
-    if(!num)
-    {
-        return 0;
-    }
-    while(num)
-    {
-        if(Global_Device.ID[num]==Device_ID)
-        {
-            return Global_Device.Moto[num];
-        }
-        num--;
-    }
-    return 0;
+    uint32_t index = GetIndex(Device_ID);
+    return Global_Device.Moto[index];
 }
-uint8_t Flash_Set_Moto(uint32_t Device_ID,uint8_t Flag)//数据载入到内存中
+uint8_t Flash_Set_Moto(uint32_t Device_ID,uint8_t Flag)
 {
-    uint16_t num = Global_Device.Num;
-    if(!num)
-    {
-        return RT_ERROR;
-    }
-    while(num)
-    {
-        if(Global_Device.ID[num]==Device_ID)
-        {
-            Global_Device.Moto[num] = Flag;
-            return RT_EOK;
-        }
-        num--;
-    }
-    return RT_ERROR;
+    uint32_t index = GetIndex(Device_ID);
+    if(index == 0)return RT_ERROR;
+    Global_Device.Moto[index] = Flag;
+    return RT_EOK;
 }
-uint8_t Flash_Get_Rssi(uint32_t Device_ID)//数据载入到内存中
+uint8_t Flash_Get_Rssi(uint32_t Device_ID)
 {
-    uint16_t num = Global_Device.Num;
-    if(!num)
-    {
-        return 0;
-    }
-    while(num)
-    {
-        if(Global_Device.ID[num]==Device_ID)
-        {
-            return Global_Device.Rssi[num];
-        }
-        num--;
-    }
-    return 0;
+    uint32_t index = GetIndex(Device_ID);
+    return Global_Device.Rssi[index];
 }
-uint8_t Flash_Set_Rssi(uint32_t Device_ID,uint8_t Flag)//数据载入到内存中
+uint8_t Flash_Set_Rssi(uint32_t Device_ID,uint8_t Flag)
 {
-    uint16_t num = Global_Device.Num;
-    if(!num)
-    {
-        return RT_ERROR;
-    }
-    while(num)
-    {
-        if(Global_Device.ID[num]==Device_ID)
-        {
-            Global_Device.Rssi[num] = Flag;
-            return RT_EOK;
-        }
-        num--;
-    }
-    return RT_ERROR;
+    uint32_t index = GetIndex(Device_ID);
+    if(index == 0)return RT_ERROR;
+    Global_Device.Rssi[index] = Flag;
+    return RT_EOK;
 }

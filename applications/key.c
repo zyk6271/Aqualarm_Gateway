@@ -19,7 +19,7 @@
 #include "wifi-service.h"
 
 #define DBG_TAG "key"
-#define DBG_LVL DBG_LOG
+#define DBG_LVL DBG_INFO
 #include <rtdbg.h>
 
 rt_thread_t key_response_t = RT_NULL;
@@ -35,8 +35,6 @@ extern rt_sem_t K0_Long_Sem;
 extern rt_sem_t K1_Sem;
 extern rt_sem_t K1_Long_Sem;
 extern rt_sem_t K0_K1_Long_Sem;
-
-extern uint8_t Learn_Flag;
 
 void Key_Reponse_Callback(void *parameter)
 {
@@ -66,7 +64,7 @@ void Key_Reponse_Callback(void *parameter)
         }
         else if(K0_Long_Status==RT_EOK)
         {
-            Start_Learn();
+            SlaveDataUrgentEnqueue(99999999,1,3,1);
         }
         else if(K1_Long_Status==RT_EOK)
         {

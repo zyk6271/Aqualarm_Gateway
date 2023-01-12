@@ -14,7 +14,7 @@
 
 uint8_t rf_factoryflag;
 
-void factory_detect(void)
+void Factory_Detect(void)
 {
     if(factory_button_detect())
     {
@@ -45,7 +45,7 @@ void factory_refresh(void)
     {
         rf_led_factory(0);
     }
-    RadioEnqueue(98989898,1,9,0);
+    SlaveDataEnqueue(98989898,1,9,0);
     rf_factoryflag = 1;
     mcu_start_wifitest();
 }

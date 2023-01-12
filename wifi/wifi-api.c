@@ -25,9 +25,13 @@ char *main_pid = {"q3xnn9yqt55ifaxm"};
 Remote_Info Remote_Device={0};
 extern Device_Info Global_Device;
 
-uint8_t Sync_Counter = 1;
-static rt_timer_t sync_next_timer = RT_NULL;
-static rt_timer_t sync_timeout_timer = RT_NULL;
+static uint8_t Sync_Start = 0;
+static uint8_t Sync_Counter = 1;
+static uint8_t Sync_Position = 1;
+static rt_sem_t Sync_Once_Sem = RT_NULL;
+static rt_thread_t Sync_t = RT_NULL;
+static rt_timer_t Sync_Next_Timer = RT_NULL;
+static rt_timer_t Sync_Timeout_Timer = RT_NULL;
 
 void Secure_Sync(void)//C1 00 01
 {
@@ -41,10 +45,10 @@ void Secure_Sync(void)//C1 00 01
 }
 void WariningUpload(uint32_t from_id,uint32_t device_id,uint8_t type,uint8_t value)
 {
-    unsigned char *device_id_buf = rt_malloc(20);
-    unsigned char *from_id_buf = rt_malloc(20);
-    sprintf(device_id_buf,"%ld",device_id);
-    sprintf(from_id_buf,"%ld",from_id);
+    unsigned char *device_id_buf = rt_malloc(16);
+    unsigned char *from_id_buf = rt_malloc(16);
+    rt_sprintf(device_id_buf,"%ld",device_id);
+    rt_sprintf(from_id_buf,"%ld",from_id);
     if(device_id>0)
     {
         switch(type)
@@ -123,8 +127,8 @@ void WariningUpload(uint32_t from_id,uint32_t device_id,uint8_t type,uint8_t val
 }
 void CloseWarn_Main(uint32_t device_id)
 {
-    unsigned char *from_id_buf = rt_malloc(20);
-    sprintf(from_id_buf,"%ld",device_id);
+    unsigned char *from_id_buf = rt_malloc(16);
+    rt_sprintf(from_id_buf,"%ld",device_id);
     mcu_dp_bool_update(DPID_DEVICE_ALARM,0,from_id_buf,my_strlen(from_id_buf)); //BOOL型数据上报;
     mcu_dp_bool_update(DPID_DELAY_STATE,0,from_id_buf,my_strlen(from_id_buf)); //VALUE型数据上报;
     LOG_I("CloseWarn_Main ID is %ld\r\n",device_id);
@@ -132,8 +136,8 @@ void CloseWarn_Main(uint32_t device_id)
 }
 void InitWarn_Main(uint32_t device_id)
 {
-    unsigned char *from_id_buf = rt_malloc(20);
-    sprintf(from_id_buf,"%ld",device_id);
+    unsigned char *from_id_buf = rt_malloc(16);
+    rt_sprintf(from_id_buf,"%ld",device_id);
     mcu_dp_bool_update(DPID_SELF_ID,device_id,from_id_buf,my_strlen(from_id_buf)); //BOOL型数据上报;
     mcu_dp_bool_update(DPID_DEVICE_ALARM,0,from_id_buf,my_strlen(from_id_buf)); //BOOL型数据上报;
     mcu_dp_bool_update(DPID_VALVE1_CHECK_FAIL,0,from_id_buf,my_strlen(from_id_buf)); //BOOL型数据上报;
@@ -145,50 +149,59 @@ void InitWarn_Main(uint32_t device_id)
 }
 void CloseWarn_Slave(uint32_t device_id)
 {
-    unsigned char *from_id_buf = rt_malloc(20);
-    sprintf(from_id_buf,"%ld",device_id);
-    mcu_dp_enum_update(1,0,from_id_buf,my_strlen(from_id_buf)); //BOOL型数据上报;
+    unsigned char *from_id_buf = rt_malloc(16);
+    rt_sprintf(from_id_buf,"%ld",device_id);
+    mcu_dp_enum_update(1,0,from_id_buf,my_strlen(from_id_buf));
     rt_free(from_id_buf);
 }
 void Remote_Delete(uint32_t device_id)
 {
-    unsigned char *id_buf = rt_malloc(20);
-    sprintf(id_buf,"%ld",GetBindID(device_id));
+    unsigned char *id_buf = rt_malloc(16);
+    rt_sprintf(id_buf,"%ld",GetBindID(device_id));
     GatewayDataEnqueue(GetBindID(device_id),device_id,0,6,0);
     LOG_I("Remote_Delete Success %ld\r\n",device_id);
     Del_Device(device_id);
-    if(device_id>=30000000)
+    if(GetDoorValid(device_id) == RT_EOK)
     {
-        mcu_dp_value_update(DPID_DOOR_ID,0,id_buf,my_strlen(id_buf)); //BOOL型数据上报;
+        mcu_dp_value_update(DPID_DOOR_ID,0,id_buf,my_strlen(id_buf));
     }
     rt_free(id_buf);
 }
-void Slave_Heart(uint32_t device_id,uint8_t rssi)
+void Slave_Rssi_Report(uint32_t device_id,uint8_t rssi)
 {
     Flash_Set_Rssi(device_id,rssi);
-    char *Buf = rt_malloc(20);
-    sprintf(Buf,"%ld",device_id);
-    mcu_dp_enum_update(101,rssi,Buf,my_strlen(Buf)); //VALUE型数据上报;
-    LOG_I("Slave_Heart Device ID is %ld,rssi level is %d\r\n",device_id,rssi);
+    char *Buf = rt_malloc(16);
+    rt_sprintf(Buf,"%ld",device_id);
+    mcu_dp_enum_update(101,rssi,Buf,my_strlen(Buf));
+    LOG_I("Slave_Rssi_Report Device ID is %ld,rssi level is %d\r\n",device_id,rssi);
     rt_free(Buf);
 }
-void MotoUpload(uint32_t device_id,uint8_t state)
+void Gateway_ID_Upload(uint32_t gateway_id)
+{
+    uint8_t gw_id[]={"0000"};
+    mcu_dp_value_update(101,gateway_id,gw_id,my_strlen(gw_id));
+    LOG_I("Gateway_ID_Upload ID is %ld\r\n",gateway_id);
+}
+void MotoStateUpload(uint32_t device_id,uint8_t state)
 {
     Remote_Delay_WiFi(device_id,0);
     Flash_Set_Moto(device_id,state);
-    char *Buf = rt_malloc(20);
+    char *Buf = rt_malloc(16);
     LOG_I("MotoUpload State is %d,device_id is %ld\r\n",state,device_id);
-    sprintf(Buf,"%ld",device_id);
-    mcu_dp_bool_update(DPID_DEVICE_STATE,state,Buf,my_strlen(Buf)); //VALUE型数据上报;
+    rt_sprintf(Buf,"%ld",device_id);
+    mcu_dp_bool_update(DPID_DEVICE_STATE,state,Buf,my_strlen(Buf));
     rt_free(Buf);
 }
-void DoorUpload(uint32_t device_id,uint8_t state)
+void DoorControlUpload(uint32_t device_id,uint8_t state)
 {
-    char *DeviceBuf = rt_malloc(20);
+    char *id_str = rt_malloc(16);
     LOG_I("DoorUpload %ld upload %d\r\n",device_id,state);
-    sprintf(DeviceBuf,"%ld",device_id);
-    mcu_dp_bool_update(104,state,DeviceBuf,my_strlen(DeviceBuf)); //VALUE型数据上报;
-    rt_free(DeviceBuf);
+    rt_sprintf(id_str,"%ld",device_id);
+    if(GetDoorValid(device_id) == RT_EOK)
+    {
+        mcu_dp_bool_update(104,state,id_str,my_strlen(id_str));
+    }
+    rt_free(id_str);
 }
 void Device_Add2Flash_Wifi(uint32_t device_id,uint32_t from_id)
 {
@@ -229,7 +242,7 @@ void Device_Add2Flash_Wifi(uint32_t device_id,uint32_t from_id)
         }
     }
 }
-uint8_t Set_Slave_Heart(uint32_t Device_ID,uint8_t heart)//数据载入到内存中
+uint8_t Set_Slave_Heart(uint32_t Main_ID,uint8_t heart)//数据载入到内存中
 {
     uint16_t num = Global_Device.Num;
     if(!num)
@@ -238,32 +251,30 @@ uint8_t Set_Slave_Heart(uint32_t Device_ID,uint8_t heart)//数据载入到内存
     }
     while(num)
     {
-        if(Global_Device.Bind_ID[num]==Device_ID)
+        if(Global_Device.Bind_ID[num] == Main_ID)
         {
-            if(heart){
-                if(Global_Device.Heart[num])
+            if(heart)
+            {
+                if(Flash_Get_Heart(Global_Device.ID[num]))
                 {
-                    Device_Up(Global_Device.ID[num]);
+                    wifi_slave_online(Global_Device.ID[num]);
                 }
             }
-            else {
-                Device_Down(Global_Device.ID[num]);
+            else
+            {
+                wifi_slave_offline(Global_Device.ID[num]);
             }
         }
         num--;
     }
     return 0;
 }
-void DeviceCheck(uint32_t device_id,uint32_t from_id)
-{
-    Flash_Set_Heart(device_id,1);
-}
 void Local_Delete(uint32_t device_id)
 {
-    char *Buf = rt_malloc(20);
-    char *Mainbuf = rt_malloc(20);
-    sprintf(Buf,"%ld",device_id);
-    sprintf(Mainbuf,"%ld",GetBindID(device_id));
+    char *Buf = rt_malloc(16);
+    char *Mainbuf = rt_malloc(16);
+    rt_sprintf(Buf,"%ld",device_id);
+    rt_sprintf(Mainbuf,"%ld",GetBindID(device_id));
     local_subdev_del_cmd(Buf);
     if(device_id>=30000000)
     {
@@ -274,8 +285,8 @@ void Local_Delete(uint32_t device_id)
 }
 void Main_Add_WiFi(uint32_t device_id)
 {
-    char *Buf = rt_malloc(20);
-    sprintf(Buf,"%ld",device_id);
+    char *Buf = rt_malloc(16);
+    rt_sprintf(Buf,"%ld",device_id);
     local_add_subdev_limit(1,0,0x01);
     gateway_subdevice_add("1.0",main_pid,0,Buf,10,0);
     LOG_I("Main_Add_WiFi ID is %d\r\n",device_id);
@@ -283,17 +294,18 @@ void Main_Add_WiFi(uint32_t device_id)
 }
 void Upload_Main_ID(uint32_t device_id)
 {
-    char *Buf = rt_malloc(20);
-    sprintf(Buf,"%ld",device_id);
+    char *Buf = rt_malloc(16);
+    rt_sprintf(Buf,"%ld",device_id);
     mcu_dp_value_update(DPID_SELF_ID,device_id,Buf,my_strlen(Buf)); //BOOL型数据上报;
     mcu_dp_bool_update(DPID_DEVICE_STATE,Flash_Get_Moto(device_id),Buf,my_strlen(Buf)); //VALUE型数据上报;
+    mcu_dp_enum_update(DPID_SIGN_STATE,Flash_Get_Rssi(device_id),Buf,my_strlen(Buf)); //VALUE型数据上报;
     LOG_I("Upload_Main_ID is %d\r\n",device_id);
     rt_free(Buf);
 }
 void Reset_Main_Warn(uint32_t device_id)
 {
-    char *Buf = rt_malloc(20);
-    sprintf(Buf,"%ld",device_id);
+    char *Buf = rt_malloc(16);
+    rt_sprintf(Buf,"%ld",device_id);
     mcu_dp_bool_update(DPID_DEVICE_ALARM,0,Buf,my_strlen(Buf)); //BOOL型数据上报;
     mcu_dp_bool_update(DPID_LINE_STATE,0,Buf,my_strlen(Buf)); //BOOL型数据上报;
     mcu_dp_bool_update(DPID_TEMP_STATE,0,Buf,my_strlen(Buf)); //BOOL型数据上报;
@@ -302,8 +314,8 @@ void Reset_Main_Warn(uint32_t device_id)
 }
 void Slave_Add_WiFi(uint32_t device_id)
 {
-    char *Buf = rt_malloc(20);
-    sprintf(Buf,"%ld",device_id);
+    char *Buf = rt_malloc(16);
+    rt_sprintf(Buf,"%ld",device_id);
     local_add_subdev_limit(1,0,0x01);
     gateway_subdevice_add("1.0",slave_pid,0,Buf,10,0);
     LOG_I("Slave_Add_by WiFi ID is %d\r\n",device_id);
@@ -311,17 +323,17 @@ void Slave_Add_WiFi(uint32_t device_id)
 }
 void Upload_Slave_ID(uint32_t device_id,uint32_t from_id)
 {
-    char *Buf = rt_malloc(20);
-    sprintf(Buf,"%ld",device_id);
-    mcu_dp_value_update(107,from_id,Buf,my_strlen(Buf)); //BOOL型数据上报;
-    mcu_dp_enum_update(101,Flash_Get_Rssi(device_id),Buf,my_strlen(Buf)); //VALUE型数据上报;
+    char *id_str = rt_malloc(16);
+    rt_sprintf(id_str,"%ld",device_id);
+    mcu_dp_value_update(107,from_id,id_str,my_strlen(id_str)); //BOOL型数据上报;
+    mcu_dp_enum_update(101,Flash_Get_Rssi(device_id),id_str,my_strlen(id_str)); //VALUE型数据上报;
     LOG_I("Upload_Slave_ID is %d\r\n",device_id);
-    rt_free(Buf);
+    rt_free(id_str);
 }
 void Reset_Slave_Warn(uint32_t device_id)
 {
-    char *Buf = rt_malloc(20);
-    sprintf(Buf,"%ld",device_id);
+    char *Buf = rt_malloc(16);
+    rt_sprintf(Buf,"%ld",device_id);
     mcu_dp_enum_update(1,0,Buf,my_strlen(Buf)); //BOOL型数据上报;
     mcu_dp_bool_update(104,0,Buf,my_strlen(Buf)); //VALUE型数据上报;
     LOG_I("Reset_Slave_Value ID is %d\r\n",device_id);
@@ -329,8 +341,8 @@ void Reset_Slave_Warn(uint32_t device_id)
 }
 void Door_Add_WiFi(uint32_t device_id)
 {
-    char *Doorbuf = rt_malloc(20);
-    sprintf(Doorbuf,"%ld",device_id);
+    char *Doorbuf = rt_malloc(16);
+    rt_sprintf(Doorbuf,"%ld",device_id);
     local_add_subdev_limit(1,0,0x01);
     gateway_subdevice_add("1.0",door_pid,0,Doorbuf,10,0);
     LOG_I("Door_Add_WiFi ID is %d\r\n",device_id);
@@ -338,34 +350,40 @@ void Door_Add_WiFi(uint32_t device_id)
 }
 void Upload_Door_ID(uint32_t device_id,uint32_t from_id)
 {
-    char *Mainbuf = rt_malloc(20);
-    char *Doorbuf = rt_malloc(20);
-    sprintf(Mainbuf,"%ld",from_id);
-    sprintf(Doorbuf,"%ld",device_id);
-    mcu_dp_value_update(107,from_id,Doorbuf,my_strlen(Doorbuf)); //BOOL型数据上报;
-    mcu_dp_value_update(108,device_id,Mainbuf,my_strlen(Mainbuf)); //BOOL型数据上报;
-    mcu_dp_enum_update(101,Flash_Get_Rssi(device_id),Doorbuf,my_strlen(Doorbuf)); //VALUE型数据上报;
+    char *Mainbuf = rt_malloc(16);
+    char *Doorbuf = rt_malloc(16);
+    rt_sprintf(Mainbuf,"%ld",from_id);
+    rt_sprintf(Doorbuf,"%ld",device_id);
+    if(GetDoorValid(device_id) == RT_EOK)
+    {
+        mcu_dp_value_update(107,from_id,Doorbuf,my_strlen(Doorbuf)); //BOOL型数据上报;
+        mcu_dp_value_update(108,device_id,Mainbuf,my_strlen(Mainbuf)); //BOOL型数据上报;
+        mcu_dp_enum_update(101,Flash_Get_Rssi(device_id),Doorbuf,my_strlen(Doorbuf)); //VALUE型数据上报;
+    }
     LOG_I("Upload_Door_ID is %d\r\n",device_id);
     rt_free(Mainbuf);
     rt_free(Doorbuf);
 }
 void Remote_Delay_WiFi(uint32_t device_id,uint8_t state)
 {
-    char *Buf = rt_malloc(20);
-    LOG_I("Remote_Delay_WiFi %d from %ld is upload\r\n",state,device_id);
-    sprintf(Buf,"%ld",device_id);
+    char *Buf = rt_malloc(16);
+    LOG_D("Remote_Delay_WiFi %d from %ld is upload\r\n",state,device_id);
+    rt_sprintf(Buf,"%ld",device_id);
     mcu_dp_bool_update(106,state,Buf,my_strlen(Buf)); //VALUE型数据上报;
     rt_free(Buf);
 }
 void Door_Delay_WiFi(uint32_t main_id,uint32_t device_id,uint8_t state)
 {
-    char *Main_Buf = rt_malloc(20);
-    char *Device_Buf = rt_malloc(20);
+    char *Main_Buf = rt_malloc(16);
+    char *Device_Buf = rt_malloc(16);
     LOG_I("Door_Delay_WiFi %d from %ld is upload\r\n",state,device_id);
-    sprintf(Main_Buf,"%ld",main_id);
-    sprintf(Device_Buf,"%ld",device_id);
-    mcu_dp_bool_update(105,state,Device_Buf,my_strlen(Device_Buf)); //VALUE型数据上报;
-    mcu_dp_bool_update(106,state,Main_Buf,my_strlen(Main_Buf)); //VALUE型数据上报;
+    rt_sprintf(Main_Buf,"%ld",main_id);
+    rt_sprintf(Device_Buf,"%ld",device_id);
+    if(GetDoorValid(device_id) == RT_EOK)
+    {
+        mcu_dp_bool_update(105,state,Device_Buf,my_strlen(Device_Buf)); //VALUE型数据上报;
+        mcu_dp_bool_update(106,state,Main_Buf,my_strlen(Main_Buf)); //VALUE型数据上报;
+    }
     rt_free(Device_Buf);
     rt_free(Main_Buf);
 }
@@ -395,23 +413,25 @@ void Delay_OpenRemote(uint32_t device_id)
 }
 void Main_Rssi_Report(uint32_t device_id,int rssi)
 {
-    char *id_buf = rt_malloc(20);
-    sprintf(id_buf,"%ld",device_id);
+    uint8_t level = 0;
+    char *id_buf = rt_malloc(16);
+    rt_sprintf(id_buf,"%ld",device_id);
     if(rssi<-94)
     {
-        mcu_dp_enum_update(DPID_SIGN_STATE,0,id_buf,my_strlen(id_buf));
-        LOG_I("Main_Rssi_Report %d is upload,rssi is %d,level is low\r\n",device_id,rssi);
+        level = 0;
     }
     else if(rssi>=-94 && rssi<-78)
     {
-        mcu_dp_enum_update(DPID_SIGN_STATE,1,id_buf,my_strlen(id_buf));
-        LOG_I("Main_Rssi_Report %d is upload,rssi is %d,level is mid\r\n",device_id,rssi);
+        level = 1;
     }
-    else {
-        mcu_dp_enum_update(DPID_SIGN_STATE,2,id_buf,my_strlen(id_buf));
-        LOG_I("Main_Rssi_Report %d is upload,rssi is %d,level is high\r\n",device_id,rssi);
+    else if(rssi>=-78)
+    {
+        level = 2;
     }
+    Flash_Set_Rssi(device_id,level);
+    mcu_dp_enum_update(DPID_SIGN_STATE,level,id_buf,my_strlen(id_buf));
     rt_free(id_buf);
+    LOG_I("Main_Rssi_Report %d is upload,rssi is %d,level is %d\r\n",device_id,rssi,level);
 }
 void Ack_Report(uint32_t device_id)
 {
@@ -440,57 +460,54 @@ void Self_Bind_Upload(uint32_t device_id)
         }
     }
 }
-void Heart_Upload(uint32_t device_id,uint8_t heart)
+void wifi_heart_upload(uint32_t device_id)
 {
-    char *id = rt_malloc(20);
-    sprintf(id,"%ld",device_id);
+    char *id = rt_malloc(16);
+    rt_sprintf(id,"%ld",device_id);
     heart_beat_report(id,0);
-    Flash_Set_Heart(device_id,heart);
     rt_free(id);
 }
-void Device_Up(uint32_t device_id)
+void wifi_slave_online(uint32_t device_id)
 {
-    char *id = rt_malloc(32);
-    sprintf(id,"%ld",device_id);
-    heart_beat_report(id,0);
-    user_updata_subden_online_state(0,id,1,1);
-    rt_free(id);
+    char *id_str = rt_malloc(32);
+    rt_sprintf(id_str,"%ld",device_id);
+    heart_beat_report(id_str,0);
+    user_updata_subden_online_state(0,id_str,1,1);
+    rt_free(id_str);
 }
-void Device_Down(uint32_t device_id)
+void wifi_slave_offline(uint32_t device_id)
 {
-    char *id = rt_malloc(32);
-    sprintf(id,"%ld",device_id);
-    user_updata_subden_online_state(0,id,1,0);
-    rt_free(id);
+    char *id_str = rt_malloc(32);
+    rt_sprintf(id_str,"%ld",device_id);
+    user_updata_subden_online_state(0,id_str,1,0);
+    rt_free(id_str);
 }
-void Heart_Request(char *id_buf)
+void wifi_heart_reponse(char *id_buf)
 {
     uint32_t id = 0;
     id = atol(id_buf);
     Self_Bind_Upload(id);
     if(id>=20000000 && id<40000000)//如果是子设备
     {
-        if(Flash_Get_Heart(GetBindID(id)))//检测子设备所属主控是否在线
+        if(Flash_Get_Heart(GetBindID(id)) == 1 && Flash_Get_Heart(id) == 1)//检测子设备所属主控以及自己本身是否在线
         {
-            if(Flash_Get_Heart(id))
-            {
-                Device_Up(id);
-            }
-            else
-            {
-                Device_Down(id);
-            }
+            wifi_slave_online(id);
+
+        }
+        else
+        {
+            wifi_slave_offline(id);
         }
     }
     else
     {
         if(Flash_Get_Heart(id))
         {
-            Device_Up(id);
+            wifi_slave_online(id);
         }
         else
         {
-            Device_Down(id);
+            wifi_slave_offline(id);
         }
     }
 }
@@ -530,47 +547,46 @@ uint8_t Remote_Device_Delete(uint32_t Device_ID)//查询内存中的ID
     }
     return RT_ERROR;
 }
-rt_thread_t Sync_t = RT_NULL;
-rt_sem_t Sync_Once_Sem = RT_NULL;
-uint8_t Sync_Start = 0;
-uint8_t Get_Main_Valid(uint32_t device_id)
-{
-    if(device_id>0 && device_id<20000000)
-    {
-        return RT_EOK;
-    }
-    return RT_ERROR;
-}
 uint8_t Get_Next_Main(void)
 {
     while(Sync_Counter--)
     {
-        if(Get_Main_Valid(Global_Device.ID[Sync_Counter])==RT_EOK)
+        if(Get_Main_Valid(Global_Device.ID[Sync_Counter]) == RT_EOK)
         {
+            Sync_Position = Sync_Counter;
+            Global_Device.SyncRetry[Sync_Counter] = 0;
             return RT_EOK;
         }
     }
     return RT_ERROR;
 }
-void Sync_Next_Callback(void *parameter)
+void Sync_Finish(void)
+{
+    Sync_Start = 0;
+}
+void Sync_Request_Next(void)
 {
     if(Get_Next_Main()==RT_EOK)
     {
-        LOG_I("Sync is Success,Go Next one\r\n");
+        LOG_I("Sync is Done,Go Next one\r\n");
         rt_sem_release(Sync_Once_Sem);
     }
     else
     {
-        Sync_Start = 0;
+        Sync_Finish();
         LOG_I("Sync is Finish\r\n");
     }
 }
+void Sync_Next_Callback(void *parameter)
+{
+    Sync_Request_Next();
+}
 void Sync_Timeout_Callback(void *parameter)
 {
-    if(Global_Device.SyncRecv[Sync_Counter]==0)
+    if(Global_Device.SyncRecv[Sync_Position]==0)
     {
-        Global_Device.SyncRetry[Sync_Counter]++;
-        LOG_W("Sync_Request %d is fail,Retry num is %d\r\n",Global_Device.ID[Sync_Counter],Global_Device.SyncRetry[Sync_Counter]);
+        Global_Device.SyncRetry[Sync_Position]++;
+        LOG_W("Sync_Request %d is fail,Retry num is %d\r\n",Global_Device.ID[Sync_Position],Global_Device.SyncRetry[Sync_Position]);
         rt_sem_release(Sync_Once_Sem);
     }
 }
@@ -579,60 +595,60 @@ void Sync_t_Callback(void *parameter)
     while(1)
     {
         rt_sem_take(Sync_Once_Sem,RT_WAITING_FOREVER);
-        Device_Add2Flash_Wifi(Global_Device.ID[Sync_Counter],0);
-        if(Global_Device.SyncRetry[Sync_Counter]<3)
+        Device_Add2Flash_Wifi(Global_Device.ID[Sync_Position],0);//检查远端列表以及本地并进行
+        if(Global_Device.SyncRetry[Sync_Position]<3)
         {
-            Sync_Download(Global_Device.ID[Sync_Counter]);
+            Sync_Download(Global_Device.ID[Sync_Position]);
         }
         else
         {
-            rt_timer_stop(sync_next_timer);
-            if(Get_Next_Main()==RT_EOK)//同步重试次数用尽切换至下一个设备
-            {
-                rt_sem_release(Sync_Once_Sem);
-            }
-            else //同步重试次数用尽且不存在下一个设备
-            {
-                Sync_Start = 0;
-                Global_Device.SyncRetry[Sync_Counter] = 0;
-                LOG_I("Sync is Done\r\n");
-            }
-            rt_thread_mdelay(3000);
+            Sync_Request_Next();
         }
     }
 }
 void Sync_Init(void)
 {
     Sync_Once_Sem = rt_sem_create("Sync_Once_Sem", 0, RT_IPC_FLAG_FIFO);
-    sync_next_timer = rt_timer_create("Sync_Next", Sync_Next_Callback, RT_NULL, 10000, RT_TIMER_FLAG_ONE_SHOT|RT_TIMER_FLAG_SOFT_TIMER);
-    sync_timeout_timer = rt_timer_create("Sync_Timeout", Sync_Timeout_Callback, RT_NULL, 5000, RT_TIMER_FLAG_ONE_SHOT|RT_TIMER_FLAG_SOFT_TIMER);
-    Sync_t = rt_thread_create("sync_t", Sync_t_Callback, RT_NULL, 2048, 10, 10);
+    Sync_Next_Timer = rt_timer_create("Sync_Next", Sync_Next_Callback, RT_NULL, 10000, RT_TIMER_FLAG_ONE_SHOT|RT_TIMER_FLAG_SOFT_TIMER);
+    Sync_Timeout_Timer = rt_timer_create("Sync_Timeout", Sync_Timeout_Callback, RT_NULL, 5000, RT_TIMER_FLAG_ONE_SHOT|RT_TIMER_FLAG_SOFT_TIMER);
+    Sync_t = rt_thread_create("device_sync", Sync_t_Callback, RT_NULL, 2048, 10, 10);
     rt_thread_startup(Sync_t);
 }
-void Sync_Request(void)
+void Sync_Restart(void)
 {
     Sync_Start = 1;
-    rt_timer_stop(sync_timeout_timer);
-    rt_timer_stop(sync_next_timer);
     Sync_Counter = Global_Device.Num;
-    Get_Next_Main();
-    rt_sem_release(Sync_Once_Sem);
+    Sync_Position = Global_Device.Num;
+    rt_timer_stop(Sync_Timeout_Timer);
+    rt_timer_stop(Sync_Next_Timer);
+    if(Get_Next_Main() == RT_EOK)
+    {
+        LOG_I("Sync is restart,Go for next %ld\r\n",Global_Device.ID[Sync_Position]);
+        rt_sem_release(Sync_Once_Sem);
+    }
+    else
+    {
+        Sync_Finish();
+        LOG_I("Sync is restart without valid device \r\n");
+    }
 }
-void Sync_Refresh(void)
+void Sync_Refresh(uint32_t device_id)
 {
     if(Sync_Start)
     {
-        Global_Device.SyncRecv[Sync_Counter] = 1;
-        Global_Device.SyncRetry[Sync_Counter] = 0;
-        rt_timer_stop(sync_timeout_timer);
-        rt_timer_start(sync_next_timer);
-        LOG_I("Sync_Refresh\r\n");
+        if(device_id == Global_Device.ID[Sync_Position])//校对ID
+        {
+            Global_Device.SyncRecv[Sync_Position] = 1;
+            Global_Device.SyncRetry[Sync_Position] = 0;
+            rt_timer_stop(Sync_Timeout_Timer);
+            rt_timer_start(Sync_Next_Timer);
+        }
     }
 }
 void Sync_Download(uint32_t ID)
 {
-    Global_Device.SyncRecv[Sync_Counter] = 0;
+    Global_Device.SyncRecv[Sync_Position] = 0;
     GatewayDataEnqueue(ID,0,0,4,0);
     LOG_I("Sync_Request %d is download\r\n",ID);
-    rt_timer_start(sync_timeout_timer);
+    rt_timer_start(Sync_Timeout_Timer);
 }

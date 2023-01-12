@@ -79,4 +79,3 @@ void wifi_service_init(void)
     wifi_service_t = rt_thread_create("wifi-service", service_callback, RT_NULL, 2048, 8, 10);
     if(wifi_service_t!=RT_NULL)rt_thread_startup(wifi_service_t);
 }
-MSH_CMD_EXPORT(wifi_service_init,wifi_service_init);

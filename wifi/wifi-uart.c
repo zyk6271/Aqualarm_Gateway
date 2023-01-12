@@ -16,7 +16,7 @@
 #include "led.h"
 
 #define DBG_TAG "wifi_uart"
-#define DBG_LVL DBG_LOG
+#define DBG_LVL DBG_INFO
 #include <rtdbg.h>
 
 /* 用于接收消息的信号量 */
@@ -125,6 +125,7 @@ void wifi_status_change(uint8_t result)
             if(wifi_connected==0)
             {
                 wifi_connected = 1;
+                Gateway_ID_Upload(Get_Self_ID());
                 Remote_Device_Clear();
                 qur_subdev_list();
             }
@@ -137,13 +138,11 @@ void wifi_power_on(void)
     rt_pin_mode(WIFI_EN,0);
     rt_pin_write(WIFI_EN,1);
 }
-MSH_CMD_EXPORT(wifi_power_on,wifi_power_on);
 void wifi_power_off(void)
 {
     rt_pin_mode(WIFI_EN,0);
     rt_pin_write(WIFI_EN,0);
 }
-MSH_CMD_EXPORT(wifi_power_off,wifi_power_off);
 void WiFi_Init(void)
 {
     wifi_power_off();

@@ -317,7 +317,7 @@ void heart_beat_check(unsigned char* data_buf,unsigned short data_len)
     
     sub_id = item->valuestring;
     
-    Heart_Request(sub_id);
+    wifi_heart_reponse(sub_id);
     //LOG_I("Get Heart Check From WIFI,The id is %s",sub_id);
     //#error "请自行实现心跳检测代码,完成后请删除该行"
     /////////////////////////请在此处根据获取到的sub_id进行子设备心跳的回复////////////////////////
@@ -1034,7 +1034,7 @@ void local_subdev_list(unsigned char *subdev_list_buf,unsigned short buf_len)
     
     sub_node = (tSUB_NODE*)malloc(sizeof(tSUB_NODE) * sub_node_num);
     if(NULL == sub_node) {
-        Sync_Request();
+        Sync_Restart();
         //可在此添加提示信息，如：printf("xxx");
         return;
     }
@@ -1047,7 +1047,7 @@ void local_subdev_list(unsigned char *subdev_list_buf,unsigned short buf_len)
     }
    // #error "请自行实现子设备列表代码,完成后请删除该行"
     if(next_package_flag == FALSE) { //代表后续以及没有包了，结束发送
-        Sync_Request();
+        Sync_Restart();
         //当前包序号为package_idx
         //LOG_D("Start to upload Different\r\n");
         //用户自行处理 sub_node 中的子设备信息

@@ -15,7 +15,7 @@ static agile_led_t *beep_k = RT_NULL;
 #define DBG_LVL DBG_LOG
 #include <rtdbg.h>
 
-void led_Init(void)
+void Led_Init(void)
 {
     if(RF_G == RT_NULL)
     {

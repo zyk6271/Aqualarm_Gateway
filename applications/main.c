@@ -25,16 +25,13 @@
 int main(void)
 {
     RadioID_Init();
-    LOG_I("System Version:%s,Radio ID:%ld,Device Type:%d\r\n",MCU_VER,RadioID_Read(),DeviceType_Read());
-    flash_Init();
-    led_Init();
-    LoadDevice2Memory();
-    factory_detect();
+    Flash_Init();
+    Led_Init();
+    Factory_Detect();
     Key_Reponse_Init();
-    button_Init();
+    Button_Init();
     Sync_Init();
-    rf_433_start();
-    RadioDequeueTaskInit();
+    RF_Init();
     Heart_Init();
     WiFi_Init();
     while (1)

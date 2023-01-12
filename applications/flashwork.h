@@ -30,6 +30,7 @@ typedef struct
     uint32_t ID[MaxSupport];
     uint32_t Bind_ID[MaxSupport];
 }Device_Info;
+
 typedef struct
 {
     uint8_t Num;
@@ -51,6 +52,7 @@ uint32_t GetBindID(uint32_t Device_ID);
 uint8_t Flash_Get_Heart(uint32_t Device_ID);
 uint8_t Flash_Set_Heart(uint32_t Device_ID,uint8_t heart);
 uint8_t Get_MainNums(void);
+uint8_t Get_Main_Valid(uint32_t device_id);
 uint8_t Flash_Get_UploadFlag(uint32_t Device_ID);
 uint8_t Flash_Set_UploadFlag(uint32_t Device_ID,uint8_t Flag);
 uint8_t Flash_Get_Moto(uint32_t Device_ID);
