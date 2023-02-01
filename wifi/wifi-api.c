@@ -22,6 +22,10 @@ char *door_pid = {"emnzq3qxwfplx7db"};
 char *slave_pid = {"lnbkva6cip8dw7vy"};
 char *main_pid = {"q3xnn9yqt55ifaxm"};
 
+char *enterprise_door_pid = {"h2hotiru0zxtoyyg"};
+char *enterprise_slave_pid = {"4zfihwwfbsvowhhk"};
+char *enterprise_main_pid = {"kgywsygcm7zwdzgk"};
+
 Remote_Info Remote_Device={0};
 extern Device_Info Global_Device;
 
@@ -288,7 +292,14 @@ void Main_Add_WiFi(uint32_t device_id)
     char *Buf = rt_malloc(16);
     rt_sprintf(Buf,"%ld",device_id);
     local_add_subdev_limit(1,0,0x01);
-    gateway_subdevice_add("1.0",main_pid,0,Buf,10,0);
+    if(DeviceType_Read())
+    {
+        gateway_subdevice_add("1.0",enterprise_main_pid,0,Buf,10,0);
+    }
+    else
+    {
+        gateway_subdevice_add("1.0",main_pid,0,Buf,10,0);
+    }
     LOG_I("Main_Add_WiFi ID is %d\r\n",device_id);
     rt_free(Buf);
 }
@@ -317,7 +328,14 @@ void Slave_Add_WiFi(uint32_t device_id)
     char *Buf = rt_malloc(16);
     rt_sprintf(Buf,"%ld",device_id);
     local_add_subdev_limit(1,0,0x01);
-    gateway_subdevice_add("1.0",slave_pid,0,Buf,10,0);
+    if(DeviceType_Read())
+    {
+        gateway_subdevice_add("1.0",enterprise_slave_pid,0,Buf,10,0);
+    }
+    else
+    {
+        gateway_subdevice_add("1.0",slave_pid,0,Buf,10,0);
+    }
     LOG_I("Slave_Add_by WiFi ID is %d\r\n",device_id);
     rt_free(Buf);
 }
@@ -344,7 +362,14 @@ void Door_Add_WiFi(uint32_t device_id)
     char *Doorbuf = rt_malloc(16);
     rt_sprintf(Doorbuf,"%ld",device_id);
     local_add_subdev_limit(1,0,0x01);
-    gateway_subdevice_add("1.0",door_pid,0,Doorbuf,10,0);
+    if(DeviceType_Read())
+    {
+        gateway_subdevice_add("1.0",enterprise_door_pid,0,Doorbuf,10,0);
+    }
+    else
+    {
+        gateway_subdevice_add("1.0",door_pid,0,Doorbuf,10,0);
+    }
     LOG_I("Door_Add_WiFi ID is %d\r\n",device_id);
     rt_free(Doorbuf);
 }
