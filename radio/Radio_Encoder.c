@@ -22,18 +22,20 @@
 #define DBG_LVL DBG_INFO
 #include <rtdbg.h>
 
-uint32_t Self_Id = 0;
+static rt_mq_t rf_en_mq;
+extern struct ax5043 rf_433;
+
+rt_thread_t rf_encode_t = RT_NULL;
+
+uint32_t Self_ID = 0;
 uint32_t Self_Default_Id = 40000000;
 uint8_t Self_Type = 0;
 
-rt_mq_t rf_en_mq;
-rt_thread_t Radio_Queue433 = RT_NULL;
-
-extern struct ax5043 rf_433;
+char radio_send_buf[255];
 
 uint32_t RadioID_Read(void)
 {
-    return Self_Id;
+    return Self_ID;
 }
 
 uint8_t DeviceType_Read(void)
@@ -41,127 +43,122 @@ uint8_t DeviceType_Read(void)
     return Self_Type;
 }
 
-void SlaveDataEnqueue(uint32_t target_id,uint8_t counter,uint8_t command,uint8_t data)//终端类型的数据入队列
+void SlaveDataEnqueue(uint32_t Taget_Id, uint8_t Counter, uint8_t Command, uint8_t Data)
 {
-    RF_Msg_t Msg_433 = {0};
-    Msg_433.Type = 0;
-    Msg_433.Taget_Id = target_id;
-    Msg_433.Device_Id = 0;
-    Msg_433.Counter = counter;
-    Msg_433.Command = command;
-    Msg_433.Data = data;
-    rt_mq_send(rf_en_mq, &Msg_433, sizeof(RF_Msg_t));
-}
-void SlaveDataUrgentEnqueue(uint32_t target_id,uint8_t counter,uint8_t command,uint8_t data)//终端类型的数据入队列
-{
-    RF_Msg_t Msg_433 = {0};
-    Msg_433.Type = 0;
-    Msg_433.Taget_Id = target_id;
-    Msg_433.Device_Id = 0;
-    Msg_433.Counter = counter;
-    Msg_433.Command = command;
-    Msg_433.Data = data;
-    rt_mq_urgent(rf_en_mq, &Msg_433, sizeof(RF_Msg_t));
+    Radio_Send_Format Send_Buf = {0};
+
+    Send_Buf.Type = 0;
+    Send_Buf.Taget_ID = Taget_Id;
+    Send_Buf.Counter = Counter;
+    Send_Buf.Command = Command;
+    Send_Buf.Data = Data;
+
+    rt_mq_send(rf_en_mq, &Send_Buf, sizeof(Radio_Send_Format));
 }
 
-void GatewayDataEnqueue(uint32_t target_id,uint32_t device_id,uint8_t rssi,uint8_t control,uint8_t value)//网关类型的数据入队列
+void SlaveDataUrgentEnqueue(uint32_t Taget_Id, uint8_t Counter, uint8_t Command, uint8_t Data)
 {
-    RF_Msg_t Msg_433 = {0};
-    Msg_433.Type = 1;
-    Msg_433.Taget_Id = target_id;
-    Msg_433.Device_Id = device_id;
-    Msg_433.Counter = rssi;
-    Msg_433.Command = control;
-    Msg_433.Data = value;
-    rt_mq_send(rf_en_mq, &Msg_433, sizeof(RF_Msg_t));
+    Radio_Send_Format Send_Buf = {0};
+
+    Send_Buf.Type = 0;
+    Send_Buf.Taget_ID = Taget_Id;
+    Send_Buf.Counter = Counter;
+    Send_Buf.Command = Command;
+    Send_Buf.Data = Data;
+
+    rt_mq_urgent(rf_en_mq, &Send_Buf, sizeof(Radio_Send_Format));
 }
 
-void GatewayDataUrgentEnqueue(uint32_t target_id,uint32_t device_id,uint8_t rssi,uint8_t control,uint8_t value)//网关类型的数据入队列
+void GatewayDataEnqueue(uint32_t Taget_Id, uint8_t Payload_ID, uint8_t Rssi, uint8_t Command, uint8_t Data)
 {
-    RF_Msg_t Msg_433 = {0};
-    Msg_433.Type = 1;
-    Msg_433.Taget_Id = target_id;
-    Msg_433.Device_Id = device_id;
-    Msg_433.Counter = rssi;
-    Msg_433.Command = control;
-    Msg_433.Data = value;
-    rt_mq_urgent(rf_en_mq, &Msg_433, sizeof(RF_Msg_t));
+    Radio_Send_Format Send_Buf = {0};
+
+    Send_Buf.Type = 1;
+    Send_Buf.Taget_ID = Taget_Id;
+    Send_Buf.Payload_ID = Payload_ID;
+    Send_Buf.Rssi = Rssi;
+    Send_Buf.Command = Command;
+    Send_Buf.Data = Data;
+
+    rt_mq_send(rf_en_mq, &Send_Buf, sizeof(Radio_Send_Format));
 }
 
-void SlaveDataDequeue(RF_Msg_t Msg_433)//终端类型的数据出队列
+void GatewayDataUrgentEnqueue(uint32_t Taget_Id, uint8_t Payload_ID, uint8_t Rssi, uint8_t Command, uint8_t Data)
 {
-    char send_buf[32] = {0};
+    Radio_Send_Format Send_Buf = {0};
+
+    Send_Buf.Type = 1;
+    Send_Buf.Taget_ID = Taget_Id;
+    Send_Buf.Payload_ID = Payload_ID;
+    Send_Buf.Rssi = Rssi;
+    Send_Buf.Command = Command;
+    Send_Buf.Data = Data;
+
+    rt_mq_urgent(rf_en_mq, &Send_Buf, sizeof(Radio_Send_Format));
+}
+
+void SendPrepare(Radio_Send_Format Send)
+{
+    rt_memset(radio_send_buf, 0, sizeof(radio_send_buf));
     uint8_t check = 0;
-    if(Msg_433.Counter<255)
+    switch(Send.Type)
     {
-        Msg_433.Counter++;
+    case 0://Slave
+        Send.Counter++ <= 255 ? Send.Counter : 0;
+        rt_sprintf(radio_send_buf, "{%08ld,%08ld,%03d,%02d,%d}", Send.Taget_ID, Self_ID, Send.Counter, Send.Command, Send.Data);
+        for (uint8_t i = 0; i < 28; i++)
+        {
+            check += radio_send_buf[i];
+        }
+        radio_send_buf[28] = ((check >> 4) < 10) ? (check >> 4) + '0' : (check >> 4) - 10 + 'A';
+        radio_send_buf[29] = ((check & 0xf) < 10) ? (check & 0xf) + '0' : (check & 0xf) - 10 + 'A';
+        radio_send_buf[30] = '\r';
+        radio_send_buf[31] = '\n';
+        break;
+    case 1://GW
+        rt_sprintf(radio_send_buf,"G{%08ld,%08ld,%08ld,%03d,%03d,%02d}G",Send.Taget_ID,Self_ID,Send.Payload_ID,Send.Rssi,Send.Command,Send.Data);
+        break;
     }
-    else
-    {
-        Msg_433.Counter=0;
-    }
-    rt_sprintf(send_buf,"{%08ld,%08ld,%03d,%02d,%d}",Msg_433.Taget_Id,Self_Id,Msg_433.Counter,Msg_433.Command,Msg_433.Data);
-    for(uint8_t i = 0 ; i < 28 ; i ++)
-    {
-        check += send_buf[i];
-    }
-    send_buf[28] = ((check>>4) < 10)?  (check>>4) + '0' : (check>>4) - 10 + 'A';
-    send_buf[29] = ((check&0xf) < 10)?  (check&0xf) + '0' : (check&0xf) - 10 + 'A';
-    send_buf[30] = '\r';
-    send_buf[31] = '\n';
-    RF_Send(&rf_433,send_buf,32);
-    LOG_D("SlaveDataDequeue is %s\r\n",send_buf);
 }
 
-void GatewayDataDequeue(RF_Msg_t Msg_433)//网关类型的数据出队列
+void rf_encode_entry(void *paramaeter)
 {
-    char send_buf[48] = {0};
-    rt_sprintf(send_buf,"G{%08ld,%08ld,%08ld,%03d,%03d,%02d}G",Msg_433.Taget_Id,Self_Id,Msg_433.Device_Id,Msg_433.Counter,Msg_433.Command,Msg_433.Data);
-    RF_Send(&rf_433,send_buf,41);
-    LOG_D("GatewayDataDequeue is %s\r\n",send_buf);
-}
-void RadioDequeue(void *paramaeter)
-{
-    LOG_D("Queue Init Success\r\n");
-    while(1)
+    Radio_Send_Format Send_Data;
+    while (1)
     {
-        RF_Msg_t Msg_433 = {0};
-        rt_mq_recv(rf_en_mq, &Msg_433, sizeof(RF_Msg_t), RT_WAITING_FOREVER);
-        rt_thread_mdelay(50);
-        switch(Msg_433.Type)
+        if (rt_mq_recv(rf_en_mq,&Send_Data, sizeof(Radio_Send_Format), RT_WAITING_FOREVER) == RT_EOK)
         {
-        case 0:
-            SlaveDataDequeue(Msg_433);
-            break;
-        case 1:
-            GatewayDataDequeue(Msg_433);
-            break;
+            SendPrepare(Send_Data);
+            rt_thread_mdelay(50);
+            RF_Send(&rf_433,radio_send_buf, rt_strlen(radio_send_buf));
+            rt_thread_mdelay(100);
         }
-        rt_thread_mdelay(100);
     }
 }
 uint32_t Get_Self_ID(void)
 {
-    return Self_Id;
+    return Self_ID;
 }
 void RadioID_Init(void)
 {
     int *p;
     p=(int *)(0x0800FFF0);
-    Self_Id = *p;
-    if(Self_Id==0xFFFFFFFF || Self_Id==0)
+    Self_ID = *p;
+    if(Self_ID==0xFFFFFFFF || Self_ID==0)
     {
-        Self_Id = Self_Default_Id;
+        Self_ID = Self_Default_Id;
     }
-    if(Self_Id >= 46000001 && Self_Id <= 49999999)
+    if(Self_ID >= 46000001 && Self_ID <= 49999999)
     {
         Self_Type = 1;
     }
     LOG_I("System Version:%s,Radio ID:%ld,Device Type:%d\r\n",MCU_VER,RadioID_Read(),DeviceType_Read());
 }
-void RadioDequeueTaskInit(void)
+void RadioQueue_Init(void)
 {
-    rf_en_mq = rt_mq_create("rf_en_mq", sizeof(RF_Msg_t), 20, RT_IPC_FLAG_PRIO);
-    Radio_Queue433 = rt_thread_create("Radio433_Dequeue", RadioDequeue, RT_NULL, 1024, 9, 10);
-    if(Radio_Queue433)rt_thread_startup(Radio_Queue433);
+    rf_led(1);
+    beep_power(1);
+    rf_en_mq = rt_mq_create("rf_en_mq", sizeof(Radio_Send_Format), 10, RT_IPC_FLAG_PRIO);
+    rf_encode_t = rt_thread_create("radio_send", rf_encode_entry, RT_NULL, 1024, 9, 10);
+    if (rf_encode_t)rt_thread_startup(rf_encode_t);
 }

@@ -25,7 +25,7 @@
 #define DBG_LVL DBG_LOG
 #include <rtdbg.h>
 
-void Device_Learn(Message buf)
+void Device_Learn(Radio_Recv_Format buf)
 {
     if(Flash_Get_Key_Valid(buf.From_ID) != RT_EOK)
     {
@@ -52,43 +52,47 @@ void Device_Learn(Message buf)
 }
 void NormalSolve(int rssi,uint8_t *rx_buffer,uint8_t rx_len)
 {
-    Message Rx_message;
+    Radio_Recv_Format Rx_message;
     if(rx_buffer[rx_len]==0x0A&&rx_buffer[rx_len-1]==0x0D)
-     {
-         sscanf((const char *)&rx_buffer[1],"{%ld,%ld,%d,%d,%d}",&Rx_message.Target_ID,&Rx_message.From_ID,&Rx_message.Counter,&Rx_message.Command,&Rx_message.Data);
-         if(Rx_message.Target_ID == Get_Self_ID())
+    {
+        rt_enter_critical();
+        sscanf((const char *)&rx_buffer[1],"{%ld,%ld,%d,%d,%d}",&Rx_message.Target_ID,&Rx_message.From_ID,&Rx_message.Counter,&Rx_message.Command,&Rx_message.Data);
+        rt_exit_critical();
+        if(Rx_message.Target_ID == Get_Self_ID())
+        {
+         if(Rx_message.From_ID == 98989898)
          {
-             if(Rx_message.From_ID == 98989898)
+             LOG_I("Factory Test verify ok,RSSI is %d\r\n",rssi);
+             rf_refresh();
+             if(rssi>-70)
              {
-                 LOG_I("Factory Test verify ok,RSSI is %d\r\n",rssi);
-                 rf_refresh();
-                 if(rssi>-70)
-                 {
-                     rf_led_factory(2);
-                 }
-                 else
-                 {
-                     rf_led_factory(1);
-                }
-                return;
+                 rf_led_factory(2);
              }
-             switch(Rx_message.Command)
+             else
              {
-             case 3://学习
-                 Device_Learn(Rx_message);
-                 break;
-             }
-             rf_led(3);
-             Main_Heart(Rx_message.From_ID,1);
+                 rf_led_factory(1);
+            }
+            return;
          }
-     }
+         switch(Rx_message.Command)
+         {
+         case 3://学习
+             Device_Learn(Rx_message);
+             break;
+         }
+         rf_led(3);
+         Main_Heart(Rx_message.From_ID,1);
+        }
+    }
 }
 void GatewaySyncSolve(int rssi,uint8_t *rx_buffer,uint8_t rx_len)
 {
-    Message Rx_message;
+    Radio_Recv_Format Rx_message;
     if(rx_buffer[rx_len]=='A')
     {
+        rt_enter_critical();
         sscanf((const char *)&rx_buffer[2],"{%d,%d,%ld,%ld,%ld,%d,%d}",&Rx_message.ack,&Rx_message.type,&Rx_message.Target_ID,&Rx_message.From_ID,&Rx_message.Device_ID,&Rx_message.Rssi,&Rx_message.Data);
+        rt_exit_critical();
         if(Rx_message.Target_ID == Get_Self_ID() && Flash_Get_Key_Valid(Rx_message.From_ID) == RT_EOK)
         {
             LOG_D("GatewaySyncSolve buf is %s,rssi is %d\r\n",rx_buffer,rssi);
@@ -137,10 +141,12 @@ void GatewaySyncSolve(int rssi,uint8_t *rx_buffer,uint8_t rx_len)
 }
 void GatewayWarningSolve(int rssi,uint8_t *rx_buffer,uint8_t rx_len)
 {
-    Message Rx_message;
+    Radio_Recv_Format Rx_message;
     if(rx_buffer[rx_len]=='B')
     {
+        rt_enter_critical();
         sscanf((const char *)&rx_buffer[2],"{%d,%ld,%ld,%ld,%d,%d,%d}",&Rx_message.ack,&Rx_message.Target_ID,&Rx_message.From_ID,&Rx_message.Device_ID,&Rx_message.Rssi,&Rx_message.Command,&Rx_message.Data);
+        rt_exit_critical();
         if(Rx_message.Target_ID == Get_Self_ID() && Flash_Get_Key_Valid(Rx_message.From_ID) == RT_EOK)
         {
             LOG_D("GatewayWarningSolve buf %s,rssi is %d\r\n",rx_buffer,rssi);
@@ -196,10 +202,12 @@ void GatewayWarningSolve(int rssi,uint8_t *rx_buffer,uint8_t rx_len)
 }
 void GatewayControlSolve(int rssi,uint8_t *rx_buffer,uint8_t rx_len)
 {
-    Message Rx_message;
+    Radio_Recv_Format Rx_message;
     if(rx_buffer[rx_len]=='C')
     {
+        rt_enter_critical();
         sscanf((const char *)&rx_buffer[2],"{%d,%ld,%ld,%ld,%d,%d,%d}",&Rx_message.ack,&Rx_message.Target_ID,&Rx_message.From_ID,&Rx_message.Device_ID,&Rx_message.Rssi,&Rx_message.Command,&Rx_message.Data);
+        rt_exit_critical();
         if(Rx_message.Target_ID == Get_Self_ID() && Flash_Get_Key_Valid(Rx_message.From_ID) == RT_EOK)
         {
             LOG_D("GatewayControlSolve buf %s,rssi is %d\r\n",rx_buffer,rssi);

@@ -7,16 +7,7 @@
  * Date           Author       Notes
  * 2021-07-13     RT-Thread    first version
  */
-
 #include <rtthread.h>
-#include "flashwork.h"
-#include "device.h"
-#include "key.h"
-#include "led.h"
-#include "wifi-uart.h"
-#include "heart.h"
-#include "board.h"
-#include "protocol.h"
 
 #define DBG_TAG "main"
 #define DBG_LVL DBG_LOG
@@ -38,4 +29,6 @@ int main(void)
     {
         rt_thread_mdelay(1000);
     }
+
+    return RT_EOK;
 }

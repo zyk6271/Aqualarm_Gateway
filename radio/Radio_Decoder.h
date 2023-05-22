@@ -23,6 +23,6 @@ typedef struct
     int Command ;
     int Data;
     int Rssi;
-}Message;
+}Radio_Recv_Format;
 
 #endif /* RADIO_RADIO_DECODER_H_ */

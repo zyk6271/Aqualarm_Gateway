@@ -22,8 +22,7 @@ void Factory_Detect(void)
         led_test();
         beep_test();
         factory_button_init();
-        rf_433_init();
-        RadioDequeueTaskInit();
+        RF_Init();
         WiFi_FactoryInit();
         while(1)
         {

@@ -33,7 +33,7 @@
 #define GW_PERSONAL_PRODUCT_KEY "rbptoajhwdfsdmbu"    //开发平台创建产品后生成的16位字符产品唯一标识
 #define GW_ENTERPRISE_PRODUCT_KEY "vtboj5kndkktrtrj"    //开发平台创建产品后生成的16位字符产品唯一标识
 
-#define MCU_VER "2.2.0"                                 //用户的软件版本,用于MCU固件升级,MCU升级版本需修改
+#define MCU_VER "2.2.1"                                 //用户的软件版本,用于MCU固件升级,MCU升级版本需修改
 
 //配网方式选择,默认为CONFIG_MODE_DEFAULT,只能三选一
 #define CONFIG_MODE     CONFIG_MODE_DEFAULT             //默认配网方式

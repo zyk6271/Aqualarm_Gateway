@@ -166,9 +166,7 @@ void rf_433_task_callback(void *parameter)
 void RF_Init(void)
 {
     rf_433_init();
-    rf_led(1);
-    beep_power(1);
-    RadioDequeueTaskInit();
+    RadioQueue_Init();
 }
 void rf_433_init(void)
 {
