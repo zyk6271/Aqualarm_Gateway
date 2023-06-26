@@ -20,11 +20,11 @@
 
 char *door_pid = {"emnzq3qxwfplx7db"};
 char *slave_pid = {"lnbkva6cip8dw7vy"};
-char *main_pid = {"q3xnn9yqt55ifaxm"};
+char *main_pid = {"37x0zspuatfwqhmj"};
 
 char *enterprise_door_pid = {"h2hotiru0zxtoyyg"};
 char *enterprise_slave_pid = {"4zfihwwfbsvowhhk"};
-char *enterprise_main_pid = {"kgywsygcm7zwdzgk"};
+char *enterprise_main_pid = {"oqyavjcnsclnpv3a"};
 
 Remote_Info Remote_Device={0};
 extern Device_Info Global_Device;
