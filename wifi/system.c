@@ -185,9 +185,6 @@ void product_info_update(unsigned char pid_flag)
             cJSON_AddStringToObject(root, "p", GW_PERSONAL_PRODUCT_KEY);
         }
     }
-    if(0x02 == pid_flag) {
-        cJSON_AddStringToObject(root, "p", MAIN_PRODUCT_KEY);
-    }
 #ifdef CONFIG_MODE_CHOOSE
     cJSON_AddNumberToObject(root, "n", CONFIG_MODE_CHOOSE);
 #endif
