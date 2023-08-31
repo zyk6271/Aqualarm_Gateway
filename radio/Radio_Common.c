@@ -108,33 +108,48 @@ void AX5043ReceiverON(struct ax5043 *dev)
     SpiWriteSingleAddressRegister(dev,REG_AX5043_IRQMASK1,0x00);
 }
 
+void AX5043SetOperationMode_RX(struct ax5043 *dev)
+{
+    PwrStatus status = (PwrStatus)SpiReadSingleAddressRegister(dev,REG_AX5043_POWSTAT);
+    do {
+        SpiWriteSingleAddressRegister(dev,REG_AX5043_PWRMODE, AX5043_PWRSTATE_XTAL_ON); //AX5043_PWRMODE = AX5043_PWRSTATE_XTAL_ON;    Crystal Oscillator enabled
+        status = (PwrStatus)SpiReadSingleAddressRegister(dev,REG_AX5043_POWSTAT);
+    } while(status.svmodem != 0x00);
+    SpiWriteSingleAddressRegister(dev,REG_AX5043_PWRMODE, AX5043_PWRSTATE_FIFO_ON); //AX5043_PWRMODE = AX5043_PWRSTATE_FIFO_ON;    FIFO enabled
+    SpiWriteSingleAddressRegister(dev,REG_AX5043_PWRMODE, AX5043_PWRSTATE_FULL_RX); //AX5043_PWRMODE = AX5043_PWRSTATE_FULL_RX;
+    status = (PwrStatus)SpiReadSingleAddressRegister(dev,REG_AX5043_POWSTAT);
+    while(status.svmodem != 0x01) {
+        status = (PwrStatus)SpiReadSingleAddressRegister(dev,REG_AX5043_POWSTAT);
+    }
+}
+
+void AX5043SetOperationMode_TX(struct ax5043 *dev)
+{
+    PwrStatus status = (PwrStatus)SpiReadSingleAddressRegister(dev,REG_AX5043_POWSTAT);
+    do {
+        SpiWriteSingleAddressRegister(dev,REG_AX5043_PWRMODE, AX5043_PWRSTATE_XTAL_ON); //AX5043_PWRMODE = AX5043_PWRSTATE_XTAL_ON;    Crystal Oscillator enabled
+        status = (PwrStatus)SpiReadSingleAddressRegister(dev,REG_AX5043_POWSTAT);
+    } while(status.svmodem != 0x00);
+    SpiWriteSingleAddressRegister(dev,REG_AX5043_PWRMODE, AX5043_PWRSTATE_FIFO_ON); //AX5043_PWRMODE = AX5043_PWRSTATE_FIFO_ON;    FIFO enabled
+    SpiWriteSingleAddressRegister(dev,REG_AX5043_PWRMODE, AX5043_PWRSTATE_FULL_TX); //AX5043_PWRMODE = AX5043_PWRSTATE_FULL_RX;
+    status = (PwrStatus)SpiReadSingleAddressRegister(dev,REG_AX5043_POWSTAT);
+    while(status.svmodem != 0x01) {
+        status = (PwrStatus)SpiReadSingleAddressRegister(dev,REG_AX5043_POWSTAT);
+    }
+}
+
 void AX5043Receiver_Continuous(struct ax5043 *dev)
 {
-    uint32_t ubTemp=0;
-
-    //disable interrupts of fifo
-    SpiWriteSingleAddressRegister(dev,REG_AX5043_IRQMASK0, 0x00);
-    SpiWriteSingleAddressRegister(dev,REG_AX5043_IRQMASK1, 0x00);
-
-    SpiWriteSingleAddressRegister(dev,REG_AX5043_RADIOEVENTMASK0, 0x04);
     SpiWriteLongAddressRegister(dev,REG_AX5043_RSSIREFERENCE, dev->config->axradio_phy_rssireference);
-
     SpiWriteLongAddressRegister(dev,REG_AX5043_TMGRXAGC, 0);
     SpiWriteLongAddressRegister(dev,REG_AX5043_TMGRXPREAMBLE1, 0);
     SpiWriteLongAddressRegister(dev,REG_AX5043_PKTMISCFLAGS , 0 );
+    SpiWriteLongAddressRegister(dev,REG_AX5043_PKTSTOREFLAGS, SpiReadLongAddressRegister(dev,REG_AX5043_PKTSTOREFLAGS) & ((uint8_t)~0x40));
 
-    ubTemp = SpiReadLongAddressRegister(dev,REG_AX5043_PKTSTOREFLAGS);
-    ubTemp &= ~0x40;
-    SpiWriteLongAddressRegister(dev,REG_AX5043_PKTSTOREFLAGS, ubTemp);
-
-    dev->ubRFState = trxstate_rx;
     //error-d necessary
     SpiWriteSingleAddressRegister(dev,REG_AX5043_FIFOSTAT,0x03);
-    SpiWriteSingleAddressRegister(dev,REG_AX5043_PWRMODE, AX5043_PWRSTATE_XTAL_ON); //AX5043_PWRMODE = AX5043_PWRSTATE_XTAL_ON;    Crystal Oscillator enabled
-
-    SpiWriteSingleAddressRegister(dev,REG_AX5043_PWRMODE, AX5043_PWRSTATE_FIFO_ON); //AX5043_PWRMODE = AX5043_PWRSTATE_FIFO_ON;    FIFO enabled
-    SpiWriteSingleAddressRegister(dev,REG_AX5043_PWRMODE, AX5043_PWRSTATE_FULL_RX); //AX5043_PWRMODE = AX5043_PWRSTATE_FULL_RX;
-
+    AX5043SetOperationMode_RX(dev);
+    dev->ubRFState = trxstate_rx;
     SpiWriteSingleAddressRegister(dev,REG_AX5043_IRQMASK0,0x01);
     SpiWriteSingleAddressRegister(dev,REG_AX5043_IRQMASK1,0x00);
 }
@@ -352,10 +367,7 @@ void transmit_packet_task(struct ax5043 *dev,char *buffer, uint8_t len)
     SpiWriteSingleAddressRegister(dev,REG_AX5043_IRQMASK1, 0x00);
     //error-d necessary
     SpiWriteSingleAddressRegister(dev,REG_AX5043_FIFOSTAT,0x03);
-    SpiWriteSingleAddressRegister(dev,REG_AX5043_PWRMODE, AX5043_PWRSTATE_XTAL_ON); //AX5043_PWRMODE = AX5043_PWRSTATE_XTAL_ON;    Crystal Oscillator enabled
-
-    SpiWriteSingleAddressRegister(dev,REG_AX5043_PWRMODE, AX5043_PWRSTATE_FIFO_ON); //AX5043_PWRMODE = AX5043_PWRSTATE_FIFO_ON;    FIFO enabled
-    SpiWriteSingleAddressRegister(dev,REG_AX5043_PWRMODE, AX5043_PWRSTATE_FULL_TX); //AX5043_PWRMODE = AX5043_PWRSTATE_FULL_TX;
+    AX5043SetOperationMode_TX(dev);
 
     //copy length to buff[0]
     dev->TxLen = len;
@@ -484,6 +496,7 @@ uint8_t rf_startup(struct ax5043 *dev)
     InitAx5043REG(dev);
     SpiWriteSingleAddressRegister(dev,REG_AX5043_PLLLOOP, 0x09);
     SpiWriteSingleAddressRegister(dev,REG_AX5043_PLLCPI, 0x08);
+
     SpiWriteSingleAddressRegister(dev,REG_AX5043_PWRMODE, AX5043_PWRSTATE_XTAL_ON);
     SpiWriteSingleAddressRegister(dev,REG_AX5043_MODULATION, 0x08);
     SpiWriteLongAddressRegister(dev,REG_AX5043_FSKDEV2, 0x00);
@@ -539,7 +552,7 @@ uint8_t rf_startup(struct ax5043 *dev)
         SpiWriteSingleAddressRegister(dev,REG_AX5043_FREQA2, (f >> 16));
         SpiWriteSingleAddressRegister(dev,REG_AX5043_FREQA3, (f >> 24));
     }
-    dev->ubRFState = trxstate_rx;
+    dev->ubRFState = trxstate_off;
     if (dev->axradio_phy_chanpllrng[0] & 0x20)
         return AXRADIO_ERR_RANGING;
     return AXRADIO_ERR_NOERROR;
