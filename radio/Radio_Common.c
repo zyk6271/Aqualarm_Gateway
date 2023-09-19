@@ -110,31 +110,99 @@ void AX5043ReceiverON(struct ax5043 *dev)
 
 void AX5043SetOperationMode_RX(struct ax5043 *dev)
 {
-    PwrStatus status = (PwrStatus)SpiReadSingleAddressRegister(dev,REG_AX5043_POWSTAT);
+    PwrStatus status;
+    rt_tick_t start_time = 0;
+    rt_tick_t timeout = 0;
+    uint8_t retry = 3;
+__restart:
+    retry--;
+    if(retry == 0)
+    {
+        LOG_E("AX5043SetOperationMode_RX retry stop: Could not set svmodem\r\n");
+        return;
+    }
+    status = (PwrStatus)SpiReadSingleAddressRegister(dev,REG_AX5043_POWSTAT);
+    start_time = rt_tick_get(); // 记录开始时间
+    timeout = 50; // 设置超时时间为50ms
     do {
         SpiWriteSingleAddressRegister(dev,REG_AX5043_PWRMODE, AX5043_PWRSTATE_XTAL_ON); //AX5043_PWRMODE = AX5043_PWRSTATE_XTAL_ON;    Crystal Oscillator enabled
+        rt_thread_mdelay(10);
         status = (PwrStatus)SpiReadSingleAddressRegister(dev,REG_AX5043_POWSTAT);
-    } while(status.svmodem != 0x00);
+    } while(status.svmodem != 0x00 && ((rt_tick_get() - start_time) < timeout));
+    if (status.svmodem != 0x00) {
+        LOG_E("AX5043SetOperationMode_RX Timeout error: Could not set svmodem to 0x00\r\n");
+        rf_restart(dev);
+        goto __restart;
+    }
+    else
+    {
+        LOG_D("SetOperationMode_RX set svmodem to 0x00 spend %dms\r\n",rt_tick_get() - start_time);
+    }
     SpiWriteSingleAddressRegister(dev,REG_AX5043_PWRMODE, AX5043_PWRSTATE_FIFO_ON); //AX5043_PWRMODE = AX5043_PWRSTATE_FIFO_ON;    FIFO enabled
     SpiWriteSingleAddressRegister(dev,REG_AX5043_PWRMODE, AX5043_PWRSTATE_FULL_RX); //AX5043_PWRMODE = AX5043_PWRSTATE_FULL_RX;
-    status = (PwrStatus)SpiReadSingleAddressRegister(dev,REG_AX5043_POWSTAT);
-    while(status.svmodem != 0x01) {
+    start_time = rt_tick_get();
+    while(status.svmodem != 0x01 && (rt_tick_get() - start_time) < timeout)
+    {
+        rt_thread_mdelay(10);
         status = (PwrStatus)SpiReadSingleAddressRegister(dev,REG_AX5043_POWSTAT);
+    }
+    if (status.svmodem != 0x01) {
+        LOG_E("AX5043SetOperationMode_RX Timeout error: Could not set svmodem to 0x01\r\n");
+        rf_restart(dev);
+        goto __restart;
+    }
+    else
+    {
+        LOG_D("SetOperationMode_RX set svmodem to 0x01 spend %dms\r\n",rt_tick_get() - start_time);
     }
 }
 
 void AX5043SetOperationMode_TX(struct ax5043 *dev)
 {
-    PwrStatus status = (PwrStatus)SpiReadSingleAddressRegister(dev,REG_AX5043_POWSTAT);
+    PwrStatus status;
+    rt_tick_t start_time = 0;
+    rt_tick_t timeout = 0;
+    uint8_t retry = 3;
+__restart:
+    retry--;
+    if(retry == 0)
+    {
+        LOG_E("AX5043SetOperationMode_TX retry stop: Could not set svmodem\r\n");
+        return;
+    }
+    status = (PwrStatus)SpiReadSingleAddressRegister(dev,REG_AX5043_POWSTAT);
+    start_time = rt_tick_get(); // 记录开始时间
+    timeout = 50; // 设置超时时间为50ms
     do {
         SpiWriteSingleAddressRegister(dev,REG_AX5043_PWRMODE, AX5043_PWRSTATE_XTAL_ON); //AX5043_PWRMODE = AX5043_PWRSTATE_XTAL_ON;    Crystal Oscillator enabled
+        rt_thread_mdelay(10);
         status = (PwrStatus)SpiReadSingleAddressRegister(dev,REG_AX5043_POWSTAT);
-    } while(status.svmodem != 0x00);
+    } while(status.svmodem != 0x00 && ((rt_tick_get() - start_time) < timeout));
+    if (status.svmodem != 0x00) {
+        LOG_E("AX5043SetOperationMode_TX Timeout error: Could not set svmodem to 0x00\r\n");
+        rf_restart(dev);
+        goto __restart;
+    }
+    else
+    {
+        LOG_D("SetOperationMode_TX set svmodem to 0x00 spend %dms\r\n",rt_tick_get() - start_time);
+    }
     SpiWriteSingleAddressRegister(dev,REG_AX5043_PWRMODE, AX5043_PWRSTATE_FIFO_ON); //AX5043_PWRMODE = AX5043_PWRSTATE_FIFO_ON;    FIFO enabled
     SpiWriteSingleAddressRegister(dev,REG_AX5043_PWRMODE, AX5043_PWRSTATE_FULL_TX); //AX5043_PWRMODE = AX5043_PWRSTATE_FULL_RX;
-    status = (PwrStatus)SpiReadSingleAddressRegister(dev,REG_AX5043_POWSTAT);
-    while(status.svmodem != 0x01) {
+    start_time = rt_tick_get();
+    while(status.svmodem != 0x01 && (rt_tick_get() - start_time) < timeout)
+    {
+        rt_thread_mdelay(10);
         status = (PwrStatus)SpiReadSingleAddressRegister(dev,REG_AX5043_POWSTAT);
+    }
+    if (status.svmodem != 0x01) {
+        LOG_E("AX5043SetOperationMode_TX Timeout error: Could not set svmodem to 0x01\r\n");
+        rf_restart(dev);
+        goto __restart;
+    }
+    else
+    {
+        LOG_D("SetOperationMode_TX set svmodem to 0x01 spend %dms\r\n",rt_tick_get() - start_time);
     }
 }
 
@@ -146,6 +214,8 @@ void AX5043Receiver_Continuous(struct ax5043 *dev)
     SpiWriteLongAddressRegister(dev,REG_AX5043_PKTMISCFLAGS , 0 );
     SpiWriteLongAddressRegister(dev,REG_AX5043_PKTSTOREFLAGS, SpiReadLongAddressRegister(dev,REG_AX5043_PKTSTOREFLAGS) & ((uint8_t)~0x40));
 
+    SpiWriteSingleAddressRegister(dev,REG_AX5043_IRQMASK0,0x00);
+    SpiWriteSingleAddressRegister(dev,REG_AX5043_IRQMASK1,0x00);
     //error-d necessary
     SpiWriteSingleAddressRegister(dev,REG_AX5043_FIFOSTAT,0x03);
     AX5043SetOperationMode_RX(dev);
@@ -556,4 +626,24 @@ uint8_t rf_startup(struct ax5043 *dev)
     if (dev->axradio_phy_chanpllrng[0] & 0x20)
         return AXRADIO_ERR_RANGING;
     return AXRADIO_ERR_NOERROR;
+}
+void rf_restart(struct ax5043 *dev)
+{
+    Ax5043_OFF(dev);
+    Ax5043_Spi_Reset(dev);
+    SpiWriteSingleAddressRegister(dev,REG_AX5043_PWRMODE, 0x00);
+    SpiWriteSingleAddressRegister(dev,REG_AX5043_PINFUNCIRQ, 0x01);
+    SpiWriteSingleAddressRegister(dev,REG_AX5043_PINFUNCIRQ, 0x00);
+    SpiWriteSingleAddressRegister(dev,REG_AX5043_PINFUNCIRQ, 0x03);
+    InitAx5043REG(dev);
+    SpiWriteSingleAddressRegister(dev,REG_AX5043_PLLRANGINGA, (dev->axradio_phy_chanpllrng[0] & 0x0F));
+    {
+        uint32_t f = dev->config->axradio_phy_chanfreq[0];
+        SpiWriteSingleAddressRegister(dev,REG_AX5043_FREQA0, f);
+        SpiWriteSingleAddressRegister(dev,REG_AX5043_FREQA1, (f >> 8));
+        SpiWriteSingleAddressRegister(dev,REG_AX5043_FREQA2, (f >> 16));
+        SpiWriteSingleAddressRegister(dev,REG_AX5043_FREQA3, (f >> 24));
+    }
+    rf_433_irq_clean();
+    LOG_I("ax5043 is restart\r\n");
 }

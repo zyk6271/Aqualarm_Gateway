@@ -40,6 +40,7 @@ uint8_t rf_startup(struct ax5043 *dev);
 void RF_Send(struct ax5043 *dev,char *send_buf, uint8_t send_len);
 void Radio_Task_Init(void);
 void TransmitData(struct ax5043 *dev);
+void rf_restart(struct ax5043 *dev);
 
 #endif
 

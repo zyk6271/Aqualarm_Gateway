@@ -1766,18 +1766,18 @@ void mcu_open_weather(void)
     weather_len = sizeof(weather_choose) / sizeof(weather_choose[0]);
       
     for(i=0;i<weather_len;i++) {
-        buffer[0] = sprintf(buffer+1,"w.%s",weather_choose[i]);
+        buffer[0] = rt_sprintf(buffer+1,"w.%s",weather_choose[i]);
         send_len = set_wifi_uart_buffer(send_len, (unsigned char *)buffer, buffer[0]+1);
     }
     
     #error "请根据提示，自行完善天气服务配置，完成后请删除该行"
     /*
     //当获取的参数有和时间有关的参数时(如:日出日落)，需要搭配t.unix或者t.local使用，需要获取的参数数据是按照格林时间还是本地时间
-    buffer[0] = sprintf(buffer+1,"t.unix"); //格林时间   或使用  buffer[0] = sprintf(buffer+1,"t.local"); //本地时间
+    buffer[0] = rt_sprintf(buffer+1,"t.unix"); //格林时间   或使用  buffer[0] = rt_sprintf(buffer+1,"t.local"); //本地时间
     send_len = set_wifi_uart_buffer(send_len, (unsigned char *)buffer, buffer[0]+1);
     */
     
-    buffer[0] = sprintf(buffer+1,"w.date.%d",WEATHER_FORECAST_DAYS_NUM);
+    buffer[0] = rt_sprintf(buffer+1,"w.date.%d",WEATHER_FORECAST_DAYS_NUM);
     send_len = set_wifi_uart_buffer(send_len, (unsigned char *)buffer, buffer[0]+1);
     
     wifi_uart_write_frame(EXPAND_FUNC_CMD, MCU_TX_VER, send_len);
@@ -1863,18 +1863,18 @@ void mcu_get_weather(void)
     weather_len = sizeof(weather_choose) / sizeof(weather_choose[0]);
       
     for(i=0;i<weather_len;i++) {
-        buffer[0] = sprintf(buffer+1,"w.%s",weather_choose[i]);
+        buffer[0] = rt_sprintf(buffer+1,"w.%s",weather_choose[i]);
         send_len = set_wifi_uart_buffer(send_len, (unsigned char *)buffer, buffer[0]+1);
     }
     
     #error "请根据提示，自行完善天气服务配置，完成后请删除该行"
     /*
     //当获取的参数有和时间有关的参数时(如:日出日落)，需要搭配t.unix或者t.local使用，需要获取的参数数据是按照格林时间还是本地时间
-    buffer[0] = sprintf(buffer+1,"t.unix"); //格林时间   或使用  buffer[0] = sprintf(buffer+1,"t.local"); //本地时间
+    buffer[0] = rt_sprintf(buffer+1,"t.unix"); //格林时间   或使用  buffer[0] = rt_sprintf(buffer+1,"t.local"); //本地时间
     send_len = set_wifi_uart_buffer(send_len, (unsigned char *)buffer, buffer[0]+1);
     */
     
-    buffer[0] = sprintf(buffer+1,"w.date.%d",WEATHER_FORECAST_DAYS_NUM);
+    buffer[0] = rt_sprintf(buffer+1,"w.date.%d",WEATHER_FORECAST_DAYS_NUM);
     send_len = set_wifi_uart_buffer(send_len, (unsigned char *)buffer, buffer[0]+1);
     
     wifi_uart_write_frame(EXPAND_FUNC_CMD, MCU_TX_VER, send_len);

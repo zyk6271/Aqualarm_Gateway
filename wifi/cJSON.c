@@ -159,7 +159,7 @@ static char *print_number(cJSON *item,printbuffer *p)
 	{
 		if (p)	str=ensure(p,21);
 		else	str=(char*)cJSON_malloc(21);	/* 2^64+1 can be represented in 21 chars. */
-		if (str)	sprintf(str,"%d",item->valueint);
+		if (str)	rt_sprintf(str,"%d",item->valueint);
 	}
 	else
 	{
@@ -167,9 +167,9 @@ static char *print_number(cJSON *item,printbuffer *p)
 		else	str=(char*)cJSON_malloc(64);	/* This is a nice tradeoff. */
 		if (str)
 		{
-			if (fabs(floor(d)-d)<=DBL_EPSILON && fabs(d)<1.0e60)sprintf(str,"%.0f",d);
-			else if (fabs(d)<1.0e-6 || fabs(d)>1.0e9)			sprintf(str,"%e",d);
-			else												sprintf(str,"%f",d);
+			if (fabs(floor(d)-d)<=DBL_EPSILON && fabs(d)<1.0e60)rt_sprintf(str,"%.0f",d);
+			else if (fabs(d)<1.0e-6 || fabs(d)>1.0e9)			rt_sprintf(str,"%e",d);
+			else												rt_sprintf(str,"%f",d);
 		}
 	}
 	return str;
@@ -302,7 +302,7 @@ static char *print_string_ptr(const char *str,printbuffer *p)
 				case '\n':	*ptr2++='n';	break;
 				case '\r':	*ptr2++='r';	break;
 				case '\t':	*ptr2++='t';	break;
-				default: sprintf(ptr2,"u%04x",token);ptr2+=5;	break;	/* escape and print */
+				default: rt_sprintf(ptr2,"u%04x",token);ptr2+=5;	break;	/* escape and print */
 			}
 		}
 	}

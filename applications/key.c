@@ -61,6 +61,8 @@ void Key_Reponse_Callback(void *parameter)
             beep_start(5);
             ef_env_set_default();
             reset_factory_setting();
+            rt_thread_mdelay(3000);
+            rt_hw_cpu_reset();
         }
         else if(K0_Long_Status==RT_EOK)
         {

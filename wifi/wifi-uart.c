@@ -125,7 +125,7 @@ void wifi_status_change(uint8_t result)
             if(wifi_connected==0)
             {
                 wifi_connected = 1;
-                Gateway_ID_Upload(Get_Self_ID());
+                Gateway_ID_Upload(Get_RadioID());
                 Remote_Device_Clear();
                 qur_subdev_list();
             }

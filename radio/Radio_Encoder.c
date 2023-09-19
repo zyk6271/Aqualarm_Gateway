@@ -18,7 +18,7 @@
 #include "led.h"
 #include "protocol.h"
 
-#define DBG_TAG "RF_EN"
+#define DBG_TAG "RADIO_ENCODER"
 #define DBG_LVL DBG_INFO
 #include <rtdbg.h>
 
@@ -27,7 +27,7 @@ extern struct ax5043 rf_433;
 
 rt_thread_t rf_encode_t = RT_NULL;
 
-uint32_t Self_ID = 0;
+uint32_t RadioID = 0;
 uint32_t Self_Default_Id = 40000000;
 uint8_t Self_Type = 0;
 
@@ -35,7 +35,7 @@ char radio_send_buf[255];
 
 uint32_t RadioID_Read(void)
 {
-    return Self_ID;
+    return RadioID;
 }
 
 uint8_t DeviceType_Read(void)
@@ -48,6 +48,7 @@ void SlaveDataEnqueue(uint32_t Taget_Id, uint8_t Counter, uint8_t Command, uint8
     Radio_Send_Format Send_Buf = {0};
 
     Send_Buf.Type = 0;
+	Send_Buf.Ack = 0;
     Send_Buf.Taget_ID = Taget_Id;
     Send_Buf.Counter = Counter;
     Send_Buf.Command = Command;
@@ -105,7 +106,7 @@ void SendPrepare(Radio_Send_Format Send)
     {
     case 0://Slave
         Send.Counter++ <= 255 ? Send.Counter : 0;
-        rt_sprintf(radio_send_buf, "{%08ld,%08ld,%03d,%02d,%d}", Send.Taget_ID, Self_ID, Send.Counter, Send.Command, Send.Data);
+        rt_sprintf(radio_send_buf, "{%08ld,%08ld,%03d,%02d,%d}", Send.Taget_ID, RadioID, Send.Counter, Send.Command, Send.Data);
         for (uint8_t i = 0; i < 28; i++)
         {
             check += radio_send_buf[i];
@@ -116,7 +117,7 @@ void SendPrepare(Radio_Send_Format Send)
         radio_send_buf[31] = '\n';
         break;
     case 1://GW
-        rt_sprintf(radio_send_buf,"G{%08ld,%08ld,%08ld,%03d,%03d,%02d}G",Send.Taget_ID,Self_ID,Send.Payload_ID,Send.Rssi,Send.Command,Send.Data);
+        rt_sprintf(radio_send_buf,"G{%08ld,%08ld,%08ld,%03d,%03d,%02d}G",Send.Taget_ID,RadioID,Send.Payload_ID,Send.Rssi,Send.Command,Send.Data);
         break;
     }
 }
@@ -135,20 +136,20 @@ void rf_encode_entry(void *paramaeter)
         }
     }
 }
-uint32_t Get_Self_ID(void)
+uint32_t Get_RadioID(void)
 {
-    return Self_ID;
+    return RadioID;
 }
 void RadioID_Init(void)
 {
     int *p;
     p=(int *)(0x0800FFF0);
-    Self_ID = *p;
-    if(Self_ID==0xFFFFFFFF || Self_ID==0)
+    RadioID = *p;
+    if(RadioID==0xFFFFFFFF || RadioID==0)
     {
-        Self_ID = Self_Default_Id;
+        RadioID = Self_Default_Id;
     }
-    if(Self_ID >= 46000001 && Self_ID <= 49999999)
+    if(RadioID >= 46000001 && RadioID <= 49999999)
     {
         Self_Type = 1;
     }

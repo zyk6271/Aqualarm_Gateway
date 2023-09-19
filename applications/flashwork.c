@@ -94,7 +94,7 @@ void Flash_LearnNums_Change(uint32_t value)
 {
     const char *keybuf="Learn_Nums";
     char *Temp_ValueBuf = rt_malloc(64);
-    sprintf(Temp_ValueBuf, "%ld", value);
+    rt_sprintf(Temp_ValueBuf, "%ld", value);
     ef_set_env(keybuf, Temp_ValueBuf);
     rt_free(Temp_ValueBuf);
     LOG_D("Writing %ld to key %s\r\n", value,keybuf);
@@ -103,7 +103,7 @@ void Flash_MainNums_Change(uint32_t value)
 {
     const char *keybuf="Main_Nums";
     char *Temp_ValueBuf = rt_malloc(64);
-    sprintf(Temp_ValueBuf, "%ld", value);
+    rt_sprintf(Temp_ValueBuf, "%ld", value);
     ef_set_env(keybuf, Temp_ValueBuf);
     rt_free(Temp_ValueBuf);
     LOG_D("Writing %ld to key %s\r\n", value,keybuf);
@@ -178,9 +178,9 @@ uint8_t Get_MainNums(void)
 void Flash_ID_Change(uint32_t key,uint32_t value)
 {
     char *Temp_KeyBuf = rt_malloc(64);
-    sprintf(Temp_KeyBuf, "%ld", key);
+    rt_sprintf(Temp_KeyBuf, "%ld", key);
     char *Temp_ValueBuf = rt_malloc(64);//申请临时buffer空间
-    sprintf(Temp_ValueBuf, "%ld", value);
+    rt_sprintf(Temp_ValueBuf, "%ld", value);
     ef_set_env(Temp_KeyBuf, Temp_ValueBuf);
     rt_free(Temp_KeyBuf);
     rt_free(Temp_ValueBuf);
@@ -189,9 +189,9 @@ void Flash_ID_Change(uint32_t key,uint32_t value)
 void Flash_Type_Change(uint32_t Device_ID,uint32_t value)
 {
     char *Temp_KeyBuf = rt_malloc(64);
-    sprintf(Temp_KeyBuf, "type:%ld", Device_ID);
+    rt_sprintf(Temp_KeyBuf, "type:%ld", Device_ID);
     char *Temp_ValueBuf = rt_malloc(64);//申请临时buffer空间
-    sprintf(Temp_ValueBuf, "%ld", value);
+    rt_sprintf(Temp_ValueBuf, "%ld", value);
     ef_set_env(Temp_KeyBuf, Temp_ValueBuf);
     rt_free(Temp_KeyBuf);
     rt_free(Temp_ValueBuf);
@@ -200,9 +200,9 @@ void Flash_Type_Change(uint32_t Device_ID,uint32_t value)
 void Flash_Bind_Change(uint32_t Device_ID,uint32_t value)
 {
     char *Temp_KeyBuf = rt_malloc(64);
-    sprintf(Temp_KeyBuf, "bind:%ld", Device_ID);
+    rt_sprintf(Temp_KeyBuf, "bind:%ld", Device_ID);
     char *Temp_ValueBuf = rt_malloc(64);//申请临时buffer空间
-    sprintf(Temp_ValueBuf, "%ld", value);
+    rt_sprintf(Temp_ValueBuf, "%ld", value);
     ef_set_env(Temp_KeyBuf, Temp_ValueBuf);
     rt_free(Temp_KeyBuf);
     rt_free(Temp_ValueBuf);
@@ -211,9 +211,9 @@ void Flash_Bind_Change(uint32_t Device_ID,uint32_t value)
 void Flash_Heart_Change(uint32_t Device_ID,uint32_t value)
 {
     char *Temp_KeyBuf = rt_malloc(64);
-    sprintf(Temp_KeyBuf, "heart:%ld", Device_ID);
+    rt_sprintf(Temp_KeyBuf, "heart:%ld", Device_ID);
     char *Temp_ValueBuf = rt_malloc(64);//申请临时buffer空间
-    sprintf(Temp_ValueBuf, "%ld", value);
+    rt_sprintf(Temp_ValueBuf, "%ld", value);
     ef_set_env(Temp_KeyBuf, Temp_ValueBuf);
     rt_free(Temp_KeyBuf);
     rt_free(Temp_ValueBuf);
@@ -222,9 +222,9 @@ void Flash_Heart_Change(uint32_t Device_ID,uint32_t value)
 void Flash_UploadFlag_Change(uint32_t Device_ID,uint32_t value)
 {
     char *Temp_KeyBuf = rt_malloc(64);
-    sprintf(Temp_KeyBuf, "upload:%ld", Device_ID);
+    rt_sprintf(Temp_KeyBuf, "upload:%ld", Device_ID);
     char *Temp_ValueBuf = rt_malloc(64);//申请临时buffer空间
-    sprintf(Temp_ValueBuf, "%ld", value);
+    rt_sprintf(Temp_ValueBuf, "%ld", value);
     ef_set_env(Temp_KeyBuf, Temp_ValueBuf);
     rt_free(Temp_KeyBuf);
     rt_free(Temp_ValueBuf);
@@ -428,19 +428,19 @@ uint32_t Flash_Get_Key_Value(uint8_t type,uint32_t key)
     switch(type)
     {
     case 0:
-        sprintf(keybuf, "%ld", key);//将传入的数字转换成数组
+        rt_sprintf(keybuf, "%ld", key);//将传入的数字转换成数组
         break;
     case 1:
-        sprintf(keybuf, "type:%ld", key);//将传入的数字转换成数组
+        rt_sprintf(keybuf, "type:%ld", key);//将传入的数字转换成数组
         break;
     case 2:
-        sprintf(keybuf, "bind:%ld", key);//将传入的数字转换成数组
+        rt_sprintf(keybuf, "bind:%ld", key);//将传入的数字转换成数组
         break;
     case 3:
-        sprintf(keybuf, "heart:%ld", key);//将传入的数字转换成数组
+        rt_sprintf(keybuf, "heart:%ld", key);//将传入的数字转换成数组
         break;
     case 4:
-        sprintf(keybuf, "upload:%ld", key);//将传入的数字转换成数组
+        rt_sprintf(keybuf, "upload:%ld", key);//将传入的数字转换成数组
         break;
     }
     rt_memset(read_value_temp,0,64);
