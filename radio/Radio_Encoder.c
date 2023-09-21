@@ -26,6 +26,7 @@ static rt_mq_t rf_en_mq;
 extern struct ax5043 rf_433;
 
 rt_thread_t rf_encode_t = RT_NULL;
+static struct rt_completion rf_txdone_sem;
 
 uint32_t RadioID = 0;
 uint32_t Self_Default_Id = 40000000;
@@ -122,6 +123,11 @@ void SendPrepare(Radio_Send_Format Send)
     }
 }
 
+void send_done_callback(void)
+{
+    rt_completion_done(&rf_txdone_sem);
+}
+
 void rf_encode_entry(void *paramaeter)
 {
     Radio_Send_Format Send_Data;
@@ -129,10 +135,20 @@ void rf_encode_entry(void *paramaeter)
     {
         if (rt_mq_recv(rf_en_mq,&Send_Data, sizeof(Radio_Send_Format), RT_WAITING_FOREVER) == RT_EOK)
         {
+            /*
+             * Clear RF Flag
+             */
+            rt_completion_init(&rf_txdone_sem);
+            /*
+             * Start RF Send
+             */
             SendPrepare(Send_Data);
-            rt_thread_mdelay(50);
             RF_Send(&rf_433,radio_send_buf, rt_strlen(radio_send_buf));
-            rt_thread_mdelay(100);
+            /*
+             * Wait RF TxDone
+             */
+            rt_completion_wait(&rf_txdone_sem,200);
+
         }
     }
 }

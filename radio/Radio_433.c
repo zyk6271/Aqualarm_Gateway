@@ -158,6 +158,7 @@ void rf_433_task_callback(void *parameter)
                 break;
             case trxstate_tx_waitdone:                 //D
                 rt_timer_stop(rf_433_send_timer);
+                send_done_callback();
                 SpiReadSingleAddressRegister(&rf_433,REG_AX5043_RADIOEVENTREQ0);        //clear Interrupt flag
                 if (SpiReadSingleAddressRegister(&rf_433,REG_AX5043_RADIOSTATE) != 0)
                 {
