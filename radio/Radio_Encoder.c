@@ -116,9 +116,11 @@ void SendPrepare(Radio_Send_Format Send)
         radio_send_buf[29] = ((check & 0xf) < 10) ? (check & 0xf) + '0' : (check & 0xf) - 10 + 'A';
         radio_send_buf[30] = '\r';
         radio_send_buf[31] = '\n';
+        LOG_I("Send command:%d value:%d ID:%d\r\n",Send.Command,Send.Data,Send.Taget_ID);
         break;
     case 1://GW
         rt_sprintf(radio_send_buf,"G{%08ld,%08ld,%08ld,%03d,%03d,%02d}G",Send.Taget_ID,RadioID,Send.Payload_ID,Send.Rssi,Send.Command,Send.Data);
+        LOG_I("Send command:%d value:%d ID:%d\r\n",Send.Command,Send.Data,Send.Taget_ID);
         break;
     }
 }
@@ -148,7 +150,6 @@ void rf_encode_entry(void *paramaeter)
              * Wait RF TxDone
              */
             rt_completion_wait(&rf_txdone_sem,200);
-
         }
     }
 }
